@@ -1,9 +1,9 @@
-#This function plots the polygons specified in x and y using colors based on
-#the values of att.
+#This function plots any unstructured triangular grid.
 #' @todo Add error checking (zlim monotonically increasing)
 #' @todo Fix legend scale
 #' @todo Support passing in ... to plot
-plot.att <- function(grid, att, col=heat.colors, add=F, zlim=NA, units="ll") {
+plot.att <- function(grid, att, col=heat.colors, add=F, zlim=NA, units="ll",
+                     xlim=NA, ylim=NA, legend=T, border.col=NA) {
     #If values at nodes, use average of 3 corners to calculate element values
     if(length(att) == grid$nodes$n) {
         att.tmp <- rep(NA, grid$elems$n)
@@ -45,20 +45,27 @@ plot.att <- function(grid, att, col=heat.colors, add=F, zlim=NA, units="ll") {
         return(polys)
     }
     par(mar=c(5.1, 7.1, 0, 0))
+    if(is.na(xlim[1]))
+        xlim <- c(min(x), max(x))
+    if(is.na(ylim[1]))
+        ylim <- c(min(y), max(y))
     if(!add)
-        plot(0, xlim=c(min(x), max(x)), ylim=c(min(y), max(y)),
+        plot(0, xlim=xlim, ylim=ylim,
              xlab = "Longitude",
              ylab = "Latitude",
              cex.lab=2)
-    polygon(cut.poly(x), cut.poly(y), col=cols, border=NA)
+    ## TODO Allow no border
+    polygon(cut.poly(x), cut.poly(y), col=cols, border=border.col)
     cols <- col(n.cols)
-    legend(min(x), max(y),
-           legend=c(round(zlim[2], 2), rep("", n.cols-2), round(zlim[1], 2)),
-           bt="n",
-           col=rev(cols),
-           y.intersp=10/n.cols,
-           pch=15,
-           cex=2)
+    if(legend)
+        legend(min(x), max(y),
+               legend=c(round(zlim[2], 2), rep("", n.cols-2),
+               round(zlim[1], 2)),
+               bt="n",
+               col=rev(cols),
+               y.intersp=10/n.cols,
+               pch=15,
+               cex=2)
 #    plot(kimbe.grid$elems$x, att, col=cols)
 #    plot(att, x, type='l')
 }

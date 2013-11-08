@@ -15,7 +15,7 @@ filter.row <- function(mat, r, i) {
 }
 
 filter.col <- function(mat, r, i)
-    return(filter.row(t(mat), r, i))
+    return(t(filter.row(t(mat), r, i)))
 
 filter2d <- function(mat, r) {
     for(i in seq(nrow(mat)))
