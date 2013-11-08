@@ -1,0 +1,20 @@
+Package: ocean
+Version: 0.1-0
+Date: 2013-11-09
+Title: Biophysical Oceanography Tools
+Authors@R: c(person("Benjamin", "Jones", role = c("aut", "cre"),
+                     email = "btjones16@gmail.com"))
+Author: Benjamin Jones
+Maintainer: Benjamin Jones <btjones16@gmail.com>
+Depends: R (>= 3.0.2), ncdf, proj4
+Suggests: 
+Description: This package contains a set of functions for manipulating and 
+  visualizing output from numerical ocean models. Many of the routines are 
+  targeted towards Lagrangian particle-tracking models with the data stored
+  in NetCDF files. There is also minimal support for generating input files
+  for the Finite Volume Community Ocean Model and interacting with Fortran
+  binary files. This package may be useful to spatial marine ecologists and
+  biological or physical oceanographers.
+License: BSD 3-Clause (1999-07-22)
+URL: https://github.com/btjones16/ocean
+BugReports: https://github.com/btjones16/ocean/issues
