@@ -9,7 +9,7 @@ jet.colors <- function(n, alpha=1) {
         if(length(alpha) == 1) {
             alpha <- rep(alpha, n)
         }
-        return(colorRampPalette(c('blue', 'cyan', 'yellow', 'red', 'red'))(n))
+        return(colorRampPalette(c('blue', 'cyan', 'yellow', 'red', '#660000'))(n))
     } else {
         character()
     }
