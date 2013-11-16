@@ -1,5 +1,6 @@
 useDynLib(ocean)
 
 import(ncdf, proj4)
-export(bathy.colors, calculate.element.size, filter2d, get.var.fortran,
-       jet.colors, lagrangian.pdd, load.fortran, att.plot, spaghetti)
+export(att.plot, bathy.colors, calculate.element.size, filter2d,
+       find.elem, is.in.grid, jet.colors, lagrangian.pdd, att.plot,
+       spaghetti)

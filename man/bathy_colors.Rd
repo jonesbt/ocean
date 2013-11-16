@@ -14,5 +14,13 @@
 \value{
   A vector of \code{n} colors linearly spaced from light grey to pure blue.
 }
+\examples{
+  # Plot a matrix using bathy.colors
+  mat <- matrix(seq(100), 100, 1)
+  image(mat, col=bathy.colors(100))
+
+  # Plot a bowl chape using bathy.colors
+  example(att.plot)
+}
 \author{Benjamin Jones \email{btjones16@gmail.com}}
   

@@ -14,5 +14,10 @@
 \value{
   A vector of colors of length \code{n}.
 }
+\examples{
+  # Plot a matrix using bathy.colors
+  mat <- matrix(seq(100), 100, 1)
+  image(mat, col=jet.colors(100))
+}
 \author{Benjamin Jones \email{btjones16@gmail.com}}
   

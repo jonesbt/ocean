@@ -1,2 +1,2 @@
-is.in.grid <- function(x, y, grid)
-    return(find.elem(x, y, grid) > 0)
+is.in.grid <- function(x, y, grid, units='ll')
+    return(find.elem(x, y, grid, units) > 0)

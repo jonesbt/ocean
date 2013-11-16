@@ -2,7 +2,7 @@
 #' TODO Add error checking (zlim monotonically increasing)
 #' TODO Support passing in ... to plot
 att.plot <- function(grid, att, col=heat.colors, add=F, zlim=NA, units="ll",
-                     xlim=NA, ylim=NA, legend=T, border.col=NA, cex=1) {
+                     xlim=NA, ylim=NA, legend=F, border.col=NA, cex=1) {
     #If values at nodes, use average of 3 corners to calculate element values
     if(length(att) == grid$nodes$n) {
         att.tmp <- rep(NA, grid$elems$n)
@@ -24,9 +24,13 @@ att.plot <- function(grid, att, col=heat.colors, add=F, zlim=NA, units="ll",
     if(units == "ll") { # Lat/lon
         x <- grid$nodes$lon[t(grid$elems$tri)]
         y <- grid$nodes$lat[t(grid$elems$tri)]
+        xlab = 'Longitude'
+        ylab = 'Latitude'
     } else if(units == "m") {
         x <- grid$nodes$x[t(grid$elems$tri)]
-        y <- grid$nodes$y[t(grid$elems$tri)]        
+        y <- grid$nodes$y[t(grid$elems$tri)]
+        xlab = 'X (m)'
+        ylab = 'Y (m)'
     } else {
         print("Invalid units, options are 'll' or 'm'.")
         return()
@@ -49,13 +53,11 @@ att.plot <- function(grid, att, col=heat.colors, add=F, zlim=NA, units="ll",
         ylim <- c(min(y), max(y))
     if(!add) {
         plot(0, xlim=xlim, ylim=ylim, axes=F,
-             xlab="", ##xlab = "Longitude",
-             ylab="")##ylab = "Latitude",
-             ##cex.lab=2*cex, cex=cex, cex.axis=cex, line=0.5*cex)
-        axis(1, line=1, cex.axis=cex)
-        axis(2, line=1, cex.axis=cex)
-        title(xlab='Longitude', line=5, cex.lab=cex)
-        title(ylab='Latitude', line=5, cex.lab=cex)
+             xlab='', ylab='', type='n')
+        axis(1, cex.axis=cex)
+        axis(2, cex.axis=cex)
+        title(xlab=xlab, cex.lab=cex)
+        title(ylab=ylab, cex.lab=cex)
     }
     ## TODO Allow no border
     polygon(cut.poly(x), cut.poly(y), col=cols, border=border.col)

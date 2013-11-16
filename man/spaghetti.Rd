@@ -14,10 +14,20 @@
 \arguments{
   \item{x}{x locations.}
   \item{y}{y locations.}
-  \item{col}{A functions that takes 1 argument \code{n}, and returns
+  \item{col}{A function that takes 1 argument \code{n}, and returns
     \code{n} colors that will be used to color the trajectories.}
   \item{add}{Should the lines be added to the current plot.}
   \item{lwd}{Line width. See \code{par}}
+}
+\examples{
+# Create a set of random trajectories.
+x <- matrix(rnorm(10000), 100)
+y <- matrix(rnorm(10000), 100)
+for(i in seq(100)) {
+  x[i,] <- cumsum(x[i,])
+  y[i,] <- cumsum(y[i,])
+}
+spaghetti(x, y, col=jet.colors)
 }
 \author{Benjamin Jones \email{btjones16@gmail.com}}
     

@@ -1,13 +1,6 @@
-#' Calculate the size of each triangular element in the grid
-#'
-#' \code{calculate.element.size} returns the grid passed in with an additional
-#' attribute grid$elems$size that has the size of each element
-#'
-#' \param grid a grid for which to calculate the element sizes
-#' \return the grid with element sizes
 calculate.element.size <- function(grid) {
     grid$elems$size <- rep(NA, length(grid$elems$x))
-    for(i in 1:length(grid$elems$x)) {
+    for(i in seq(nrow(grid$elems$tri))) {
         x1 <- with(grid, nodes$x[elems$tri[i,1]])
         x2 <- with(grid, nodes$x[elems$tri[i,2]])
         x3 <- with(grid, nodes$x[elems$tri[i,3]])

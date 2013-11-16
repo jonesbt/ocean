@@ -13,4 +13,11 @@
 \value{
   A modified grid with \code{grid$elems$size} added.
 }
+\examples{
+## Use the grid created in the att.plot example
+example(att.plot)
+## Calculate the size of the elements and plot them
+grid <- calculate.element.size(grid)
+att.plot(grid, grid$elems$size)
+}
 \author{Benjamin Jones \email{btjones16@gmail.com}}
