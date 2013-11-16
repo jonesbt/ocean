@@ -7,7 +7,6 @@
 #'             'double'
 #' \return A list of vectors, where each vector is one of the sequences of
 #'         data in filename.
-source("get.var.fortran.R")
 load.fortran <- function(filename, type) {
     fid <- file(filename, "rb")
     dat <- vector(mode="list", length=0)

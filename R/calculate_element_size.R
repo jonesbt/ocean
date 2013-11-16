@@ -1,4 +1,4 @@
-#' Calculate the size of each trinagular element in the grid
+#' Calculate the size of each triangular element in the grid
 #'
 #' \code{calculate.element.size} returns the grid passed in with an additional
 #' attribute grid$elems$size that has the size of each element

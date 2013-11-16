@@ -15,6 +15,6 @@ Description: This package contains a set of functions for manipulating and
   for the Finite Volume Community Ocean Model and interacting with Fortran
   binary files. This package may be useful to spatial marine ecologists and
   biological or physical oceanographers.
-License: BSD 3-Clause (1999-07-22)
+License: GPL (>= 3)
 URL: https://github.com/btjones16/ocean
 BugReports: https://github.com/btjones16/ocean/issues

@@ -1,16 +1,15 @@
 #This function plots any unstructured triangular grid.
-#' @todo Add error checking (zlim monotonically increasing)
-#' @todo Fix legend scale
-#' @todo Support passing in ... to plot
-plot.att <- function(grid, att, col=heat.colors, add=F, zlim=NA, units="ll",
-                     xlim=NA, ylim=NA, legend=T, border.col=NA) {
+#' TODO Add error checking (zlim monotonically increasing)
+#' TODO Support passing in ... to plot
+att.plot <- function(grid, att, col=heat.colors, add=F, zlim=NA, units="ll",
+                     xlim=NA, ylim=NA, legend=T, border.col=NA, cex=1) {
     #If values at nodes, use average of 3 corners to calculate element values
     if(length(att) == grid$nodes$n) {
         att.tmp <- rep(NA, grid$elems$n)
         for(i in 1:grid$elems$n)
-            att.tmp[i] <- mean(c(att[kimbe.grid$elems$tri[i,1]],
-                                 att[kimbe.grid$elems$tri[i,2]],
-                                 att[kimbe.grid$elems$tri[i,3]]))
+            att.tmp[i] <- mean(c(att[grid$elems$tri[i,1]],
+                                 att[grid$elems$tri[i,2]],
+                                 att[grid$elems$tri[i,3]]))
         att <- att.tmp
         rm(att.tmp)
     }
@@ -23,10 +22,10 @@ plot.att <- function(grid, att, col=heat.colors, add=F, zlim=NA, units="ll",
         zlim <- c(min(att), max(att))
     }
     if(units == "ll") { # Lat/lon
-        x <- grid$nodes$lon[t(kimbe.grid$elems$tri)]
+        x <- grid$nodes$lon[t(grid$elems$tri)]
         y <- grid$nodes$lat[t(grid$elems$tri)]
     } else if(units == "m") {
-        x <- grid$nodes$x[t(kimbe.grid$elems$tri)]
+        x <- grid$nodes$x[t(grid$elems$tri)]
         y <- grid$nodes$y[t(grid$elems$tri)]        
     } else {
         print("Invalid units, options are 'll' or 'm'.")
@@ -44,16 +43,20 @@ plot.att <- function(grid, att, col=heat.colors, add=F, zlim=NA, units="ll",
         polys[rep(c(rep(T, n.sides), F), n)] <- x
         return(polys)
     }
-    par(mar=c(5.1, 7.1, 0, 0))
     if(is.na(xlim[1]))
         xlim <- c(min(x), max(x))
     if(is.na(ylim[1]))
         ylim <- c(min(y), max(y))
-    if(!add)
-        plot(0, xlim=xlim, ylim=ylim,
-             xlab = "Longitude",
-             ylab = "Latitude",
-             cex.lab=2)
+    if(!add) {
+        plot(0, xlim=xlim, ylim=ylim, axes=F,
+             xlab="", ##xlab = "Longitude",
+             ylab="")##ylab = "Latitude",
+             ##cex.lab=2*cex, cex=cex, cex.axis=cex, line=0.5*cex)
+        axis(1, line=1, cex.axis=cex)
+        axis(2, line=1, cex.axis=cex)
+        title(xlab='Longitude', line=5, cex.lab=cex)
+        title(ylab='Latitude', line=5, cex.lab=cex)
+    }
     ## TODO Allow no border
     polygon(cut.poly(x), cut.poly(y), col=cols, border=border.col)
     cols <- col(n.cols)
@@ -65,7 +68,5 @@ plot.att <- function(grid, att, col=heat.colors, add=F, zlim=NA, units="ll",
                col=rev(cols),
                y.intersp=10/n.cols,
                pch=15,
-               cex=2)
-#    plot(kimbe.grid$elems$x, att, col=cols)
-#    plot(att, x, type='l')
+               cex=2*cex)
 }

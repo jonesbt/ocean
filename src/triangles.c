@@ -32,13 +32,8 @@ void is_in_grid(double* x_pts, double* y_pts, int* n_pts,
 		double* x, double* y, int* n_grid_pts,
 		  int* tri1, int* tri2, int* tri3,
 		  int* elements) {
-  for(int i=0; i<n_pts[0]; i++) {
-    if(!(i % 10000)) {
-      printf("."); fflush(NULL);
-    }
+  for(int i=0; i<n_pts[0]; i++)
     elements[i] = find_element(x_pts[i], y_pts[i],
 				x, y, n_grid_pts[0],
 				tri1, tri2, tri3);
-  }
-  printf("\n");
 }

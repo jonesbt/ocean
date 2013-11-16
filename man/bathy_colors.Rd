@@ -5,10 +5,11 @@
   Generates a color ramp from light grey to blue.
 }
 \usage{
-  bathy.colors(n)
+  bathy.colors(n, alpha=1)
 }
 \arguments{
-  \item{n}{The number of colors to generate}
+  \item{n}{The number of colors to generate.}
+  \item{alpha}{Alpha values to be passed through to \code{rgb}.}
 }
 \value{
   A vector of \code{n} colors linearly spaced from light grey to pure blue.

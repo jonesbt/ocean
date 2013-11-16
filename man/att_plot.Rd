@@ -1,5 +1,5 @@
-\name{plot.att.R}
-\alias{plot.att.R}
+\name{att.plot}
+\alias{att.plot}
 \title{Plot an attribute on an unstructured grid}
 \description{
   Given a vector of data, this function plots the data as a heatmap on
@@ -9,8 +9,8 @@
   converted to an S4 object in the future.
 }
 \usage{
-plot.att(grid, att, col=heat.colors, add=F, zlim=NA, units='ll',
-xlim=NA, ylim=NA, legend=T, border.col=NA)
+att.plot(grid, att, col=heat.colors, add=F, zlim=NA, units='ll',
+xlim=NA, ylim=NA, legend=T, border.col=NA, cex=1)
 }
 \arguments{
   \item{grid}{The grid to plot the attribute on. It must be a data.frame
@@ -28,5 +28,7 @@ xlim=NA, ylim=NA, legend=T, border.col=NA)
   \item{ylim}{y limits for the plot}
   \item{legend}{Should a colorbar legend be added}
   \item{border.col}{Color of the polygon border colors}
+  \item{cex}{Character expansion for \code{cex} and \code{cex.*}.
+    See \code{par}.}
 }
 \author{Benjamin Jones \email{btjones16@gmail.com}}

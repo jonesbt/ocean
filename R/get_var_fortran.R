@@ -22,7 +22,7 @@ get.var.fortran <- function(fid, type) {
         dat <- readBin(fid, type, n=len/size, size=size)
         tail <- readBin(fid, "int", n=1, size=4)
         if(len != tail)
-            print("ERROR")
+            print("ERROR: Mismatch between header and footer.")
         return(dat)
     } else { #EOF
         return(integer(0))

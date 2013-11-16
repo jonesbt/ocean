@@ -9,8 +9,8 @@
   filter2d(mat, r)
 }
 \arguments{
-  \item{mat}{The matrix to filter}
-  \item{r}{The standard deviation of the filter in matrix cells}
+  \item{mat}{The matrix to filter.}
+  \item{r}{The standard deviation of the filter in matrix cells.}
 }
 \value{
   The filtered matrix.

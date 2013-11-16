@@ -1,4 +1,5 @@
 useDynLib(ocean)
 
-export(bathy.colors, filter2d, get.var.fortran, jet.colors, lagrangian.pdd,
-       load.fortran, plot.att, quiver, quiver.mat, spaghetta)
+import(ncdf, proj4)
+export(bathy.colors, calculate.element.size, filter2d, get.var.fortran,
+       jet.colors, lagrangian.pdd, load.fortran, att.plot, spaghetti)
