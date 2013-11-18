@@ -1,5 +1,30 @@
-#include "R.h"
-#include "Rinternals.h"
+#include <R.h>
+#include <Rinternals.h>
+
+int n_in_box(double *x, double *y, int npts, 
+	     double x0, double x1, double y0, double y1) {
+  int sum = 0;
+  for(int i=0; i < npts; ++i)
+    if((x[i] > x0) & (x[i] < x1) & (y[i] > y0) & (y[i] < y1))
+      ++sum;
+  return sum;
+}
+
+void bin_data(double *x, double *y, int npts, 
+	      double *gridx, double *gridy, int ngridx, int ngridy,
+	      int *grid) {
+  for(int j=0; j < ngridy; ++j)
+    for(int i=0; i < ngridx; ++i)
+      grid[(j * ngridx) + i] = n_in_box(x, y, npts,
+					    gridx[i], gridx[i + 1],
+					    gridy[j], gridy[j + 1]);
+}
+
+void R_bin_data(double *x, double *y, int *npts,
+		double *gridx, double *gridy, int *ngridx, int *ngridy,
+		int *grid) {
+  bin_data(x, y, npts[0], gridx, gridy, ngridx[0], ngridy[0], grid);
+}
 
 double sign(double x1, double x2, double x3,
 	      double y1, double y2, double y3) {
@@ -28,17 +53,12 @@ int find_element(double x_pt, double y_pt,
 
 }
 
-void is_in_grid(double* x_pts, double* y_pts, int* n_pts,
+void R_find_element(double* x_pts, double* y_pts, int* n_pts,
 		double* x, double* y, int* n_grid_pts,
 		  int* tri1, int* tri2, int* tri3,
 		  int* elements) {
-  for(int i=0; i<n_pts[0]; i++) {
-    if(!(i % 10000)) {
-      printf("."); fflush(NULL);
-    }
+  for(int i=0; i<n_pts[0]; i++)
     elements[i] = find_element(x_pts[i], y_pts[i],
 				x, y, n_grid_pts[0],
 				tri1, tri2, tri3);
-  }
-  printf("\n");
 }
