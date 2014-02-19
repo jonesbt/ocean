@@ -58,12 +58,21 @@ loadFVCOMGrid27 <- function(filename, proj) {
     ev <- ncvar_get(ncid, 'nv') ## Element vertices
     nc_close(ncid)
     return(new("fvcom.grid",
-               nodes.n=length(x), nodes.x=y, nodes.y=y, nodes.h=h,
-               nodes.lat=y, nodes.lon=x, proj=proj,
+               nodes.n=length(x), nodes.x=x, nodes.y=y, nodes.h=h,
+               nodes.lat=ll$y, nodes.lon=ll$x, proj=proj,
                elems.n=nrow(ev),
                elems.v1=ev[,1], elems.v2=ev[,2], elems.v3=ev[,3]))
 }
 
+
+#' Get the depth at each node in the grid.
+#'
+#' @param grid A \code{fvcom.grid} instance.
+#' @return A vector of length get.nnodes(grid) with the depth at each node.
+getFVCOMDepth <- function(grid)
+    return(grid@nodes.h)
+setGeneric("get.depth", getFVCOMDepth)
+setMethod("get.depth", "fvcom.grid", getFVCOMDepth)
 
 #' Get the indices of the element vertices in the grid.
 #'
@@ -107,10 +116,10 @@ setMethod("get.nodes", "fvcom.grid", getFVCOMNodes)
 #' Convert a single scalar or node based quantity to element based. 
 #' 
 #' The length of \code{x} determines how it will be treated. If \code{x} has
-#' length 1, it is plotted as a single color. If the length of \code{x} is
+#' length 1, it is returned as a single color. If the length of \code{x} is
 #' the number of nodes in the grid, its value for each element is calculated
 #' as the average of the value at the adjoining nodes. If the length of
-#' \code{x} is the number of elements in the grid, it is plotted as is. Any
+#' \code{x} is the number of elements in the grid, it is returned as is. Any
 #' other values throw an error.
 #' \param grid An fvcom.grid instance.
 #' \param x A vector of length 1 or \code{length get.nnodes(grid)}
@@ -121,10 +130,10 @@ interpFVCOMGrid <- function(grid, x) {
         x.ret <- rep(x, get.nelems(grid))
     } else if(length(x) == get.nnodes(grid)) {
         ## Average the values at each node to get the value in each element.
-        x.ret <- sapply(seq(get.nnodes(grid)), function(i)
-                        return(mean(c(att[grid@elems.v1[i]],
-                                      att[grid@elems.v2[i]],
-                                      att[grid@elems.v3[i]]))))
+        x.ret <- sapply(seq(get.nelems(grid)), function(i)
+                        return(mean(c(x[grid@elems.v1[i]],
+                                      x[grid@elems.v2[i]],
+                                      x[grid@elems.v3[i]]))))
     } else if(length(x) == get.nelems(grid)) {
         x.ret <- x
     } else {
@@ -138,78 +147,94 @@ setMethod("interp", "fvcom.grid", interpFVCOMGrid)
 
 #' Plot a \code{fvcom.grid} instance.
 #'
-#' @param grid A \code{fvcom.grid} instance.
+#' @param x A \code{fvcom.grid} instance.
 #' @param z A vector to plot as a heatmap.
+#' @param units Either 'll' for latitude and longitude or 'm' for meters.
 #' @param col A list of colors, such as that returned by bathy.colors.
 #' @param add Should the plot be added to the current plot?
-#' @param units Either 'll' for latitude and longitude or 'm' for meters.
-#' @param xlim x-limits for the plot.
+#' #' @param xlim x-limits for the plot.
 #' @param ylim y-limits for the plot.
-#' @param zlim z-limits for the plot
-#' @param legend Should a legend be added to the plot.
-#' @param border.col Color of the element borders.
+#' @param zlim z-limits for the plot. 
+#' @param border.col Color of the element borders. If not provided the borders
+#'                   will be colored to match the adjacent polygons.
 #' @param cex Character expansion for \code{cex} and \code{cex.*}.
-plotFVCOMGrid(grid, z=get.depth(grid), col=bathy.colors(100), add=FALSE,
-              units='ll', xlim=NA, ylim=NA, zlim=NA, legend=FALSE,
-              border.col=NA) {
+imageFVCOMGrid <- function(x, z=get.depth(grid), units='ll',
+                          col=bathy.colors(100), add=FALSE,
+                          xlim=NA, ylim=NA, zlim=NA, legend=FALSE,
+                          border.col=NA) {
     ## Check the parameters for validity.
+    ## Convert the passed in values to an element based quantity.
     z <- interp(grid, z)
     
-    
+    ## Calculate z limits
     if(!is.na(zlim)[1]) {
-        att <- apply(matrix(c(att, rep(zlim[1], length(att))), length(att)),
-                     1, max)
-        att <- apply(matrix(c(att, rep(zlim[2], length(att))), length(att)),
-                     1, min)
+        ## If zlimits were provided, any values that lie outside of them are
+        ## converted to NA.
+        z[z < zlim[1]] <- NA
+        z[z > zlim[2]] <- NA
     } else {
-        zlim <- c(min(att), max(att))
+        ## If no z limits were provided, calculate them as the minimum and
+        ## maximum of z ignoring missing values.
+        zlim <- c(min(z, na.rm=TRUE), max(z, na.rm=TRUE))
     }
+    
+    ## Get the lat/lon or x/y locations of the nodes surrounding the elements.
+    ## c(rbind()) interleaves the vectors
     if(units == "ll") { # Lat/lon
-        x <- grid$nodes$lon[t(kimbe.grid$elems$tri)]
-        y <- grid$nodes$lat[t(grid$elems$tri)]
+        x <- grid@nodes.lon[c(rbind(grid@elems.v1, grid@elems.v2,
+                                    grid@elems.v3))]
+        y <- grid@nodes.lat[c(rbind(grid@elems.v1, grid@elems.v2,
+                                    grid@elems.v3))]
     } else if(units == "m") {
-        x <- grid$nodes$x[t(kimbe.grid$elems$tri)]
-        y <- grid$nodes$y[t(grid$elems$tri)]        
+        x <- grid@nodes.x[c(rbind(grid@elems.v1, grid@elems.v2,
+                                  grid@elems.v3))]
+        y <- grid@nodes.y[c(rbind(grid@elems.v1, grid@elems.v2,
+                                  grid@elems.v3))]
     } else {
-        print("Invalid units, options are 'll' or 'm'.")
-        return()
+        stop("Invalid units, options are 'll' or 'm'.")
     }
-    #Do the actual plotting
-    n.cols <- 100
-    cols.idx <- floor((att - zlim[1]) / (zlim[2] - zlim[1]) * n.cols)
+
+    ## Calculate the colors for the polygons and the borders
+    n.cols <- length(col)
+    cols.idx <- floor((z - zlim[1]) / (zlim[2] - zlim[1]) * n.cols)
     cols.idx[cols.idx <= 0] <- 1
     cols.idx[cols.idx > n.cols] <- n.cols
-    cols <- col(n.cols)[cols.idx]
+    col <- col[cols.idx]
+    if(is.na(border.col)[1])
+        border.col <- col
+    
+    ## cut.poly adds NAs after each polygon, ensuring the the polygons are
+    ## not connected to one another by spurious lines.
     cut.poly <- function(x, n.sides=3) {
         n <- length(x) %/% n.sides
         polys <- rep(NA, n*n.sides)
         polys[rep(c(rep(T, n.sides), F), n)] <- x
         return(polys)
     }
-    par(mar=c(5.1, 7.1, 0, 0))
+
     if(is.na(xlim[1]))
         xlim <- c(min(x), max(x))
     if(is.na(ylim[1]))
         ylim <- c(min(y), max(y))
+    
     ## Do the actual plotting
     if(!add)
         plot(0, xlim=xlim, ylim=ylim,
              xlab = "Longitude",
              ylab = "Latitude",
              cex.lab=2)
-    polygon(cut.poly(x), cut.poly(y), col=cols, border=border.col)
-    cols <- col(n.cols)
-    if(legend)
-        legend(min(x), max(y),
-               legend=c(round(zlim[2], 2), rep("", n.cols-2),
-               round(zlim[1], 2)),
-               bt="n",
-               col=rev(cols),
-               y.intersp=10/n.cols,
-               pch=15,
-               cex=2)
+    polygon(cut.poly(x), cut.poly(y), col=col, border=border.col)
+    #if(legend) (TODO)
+    #    legend(min(x), max(y),
+    #           legend=c(round(zlim[2], 2), rep("", n.cols-2),
+    #           round(zlim[1], 2)),
+    #           bt="n",
+    #           col=rev(cols),
+    #           y.intersp=10/n.cols,
+    #           pch=15,
+    #           cex=2)
 }
-setMethod("plot", "fvcom.grid", plotFVCOMGrid)
+setMethod("image", "fvcom.grid", imageFVCOMGrid)
 
 #' Check if a \code{fvcom.grid} instance is valid.
 validFVCOMGrid <- function(object) {
