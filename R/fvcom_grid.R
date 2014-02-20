@@ -4,7 +4,7 @@
 #' sigma grid used by the Finite Volume Community Ocean Model (FVCOM). As a
 #' disclaimer, please note that the author of this package is a user of FVCOM,
 #' but is not affiliated with its development.
-#' 
+#'
 #' @section Slots:
 #'   \describe{
 #'     \item{nodes.n}{The number of nodes in the grid.}
@@ -145,7 +145,7 @@ interpFVCOMGrid <- function(grid, x) {
 setGeneric("interp", interpFVCOMGrid)
 setMethod("interp", "fvcom.grid", interpFVCOMGrid)
 
-#' Plot a \code{fvcom.grid} instance.
+#' Plot a \code{fvcom.grid} instance as a heatmap.
 #'
 #' @param x A \code{fvcom.grid} instance.
 #' @param z A vector to plot as a heatmap.
@@ -157,11 +157,12 @@ setMethod("interp", "fvcom.grid", interpFVCOMGrid)
 #' @param zlim z-limits for the plot. 
 #' @param border.col Color of the element borders. If not provided the borders
 #'                   will be colored to match the adjacent polygons.
-#' @param cex Character expansion for \code{cex} and \code{cex.*}.
+#' @param bg.col Color of the background. The background is only plotted if
+#'               add=F, otherwise bg.col is ignored.
 imageFVCOMGrid <- function(x, z=get.depth(grid), units='ll',
                           col=bathy.colors(100), add=FALSE,
                           xlim=NA, ylim=NA, zlim=NA, legend=FALSE,
-                          border.col=NA) {
+                          border.col=NA, bg.col='white') {
     ## Check the parameters for validity.
     ## Convert the passed in values to an element based quantity.
     z <- interp(grid, z)
@@ -219,10 +220,10 @@ imageFVCOMGrid <- function(x, z=get.depth(grid), units='ll',
     
     ## Do the actual plotting
     if(!add)
-        plot(0, xlim=xlim, ylim=ylim,
-             xlab = "Longitude",
-             ylab = "Latitude",
-             cex.lab=2)
+        image(matrix(1,1,1), col=bg.col,
+              xlab = "Longitude",
+              ylab = "Latitude",
+              xlim=xlim, ylim=ylim)
     polygon(cut.poly(x), cut.poly(y), col=col, border=border.col)
     #if(legend) (TODO)
     #    legend(min(x), max(y),
@@ -235,6 +236,102 @@ imageFVCOMGrid <- function(x, z=get.depth(grid), units='ll',
     #           cex=2)
 }
 setMethod("image", "fvcom.grid", imageFVCOMGrid)
+
+#' Plot the density of x and y on grid.
+#'
+#' @param grid A \code{fvcom.grid} instance.
+#' @param x A vector of x location of points. NAs are not supported.
+#' @param y A vector of y locations of points. NAs are not supported.
+#' @param npoints The number of points to scale the density plot by. This
+#'                defaults to the number of points passed in, but it may be
+#'                useful to set it to a different value if only a subset of
+#'                the points are being plotted (e.g. some points are outside
+#'                of the domain).
+#' @param res The resolution of the plot in the same dimensions as \code{xy}
+#'            is given. Square boxes will be plotted with each side of length
+#'            \code{res}.
+#' @param sigma The standard deviation of the Gaussian smoothing filter to be
+#'              applied. If no filter is required, set sigma=0.
+#' @param log Should the density be log10 transformed before plotting?
+#' @param bg.col The background color.
+#' @param col A list of colors, such as that returned by heat.colors.
+#' @param add Should the plot be added to the current plot?
+#' @param xlim x-limits for the plot.
+#' @param ylim y-limits for the plot.
+#' @param zlim z-limits for the plot. 
+pddFVCOMGrid <- function(grid, x, y, proj, npoints=nrow(xy),
+                             res=1000, sigma=0, log=F,
+                             bg.col='white', col=heat.colors(100), add=F,
+                             xlim=c(min(x), max(x)), ylim=c(min(y), max(y)),
+                             zlim=NA) {
+    ## Create a lattice grid for calculating the density.
+    grd <- list(x=seq(xlim[1], xlim[2], by=res[1]),
+                y=seq(ylim[1], ylim[2], by=res[2]))
+    grd$data <- matrix(0, nrow=length(grd$x) - 1, ncol=length(grd$y) - 1)
+    ## Bin the data into the grid
+    bin.data <- function(x, y, grid) {
+        out <- matrix(.C('R_bin_data',
+                         as.double(x), as.double(y), as.integer(length(x)),
+                         as.double(grid$x), as.double(grid$y),
+                         as.integer(nrow(grid$data)),
+                         as.integer(ncol(grid$data)),
+                         data=as.integer(as.vector(grid$data)))$data,
+                      nrow(grid$data))
+        return(out)
+    }
+    grd$data <- bin.data(x, y, grd)
+    ## Rescale by the number of particles released
+    grd$data <- grd$data / npart.released
+    ## Apply a 2D Gaussian filter with a 5km std dev
+    ## TODO Project the data, filter, then deproject
+    grd$data <- filter2d(grd$data, 5)
+    
+    if(log)
+        grd$data <- matrix(log10(grd$data + 1e-12), nrow(grd$data))
+    if(is.na(zlim[1]))
+        zlim <- c(min(grd$data), max(grd$data))
+    
+    ## Project the grid x,y into lat/lon
+    x.proj <- c(grd$x, rep(grd$x[1], length(grd$y)))
+    y.proj <- c(rep(grd$y[1], length(grd$x)), grd$y)
+    p <- project(data.frame(x=x.proj, y=y.proj),
+                 proj=proj, inverse=T)
+    grd$x <- p$x[seq(length(grd$x))]
+    grd$y <- p$y[length(p$y) - rev(seq(length(grd$y))) + 1]
+    ## TODO Project xlim, ylim
+    
+    ## TODO Check this
+    x.proj <- c(grd$x, rep(grd$x[1], length(grd$y)))
+    y.proj <- c(rep(grd$y[1], length(grd$x)), grd$y)
+    p <- project(data.frame(x=x.proj, y=y.proj), proj=proj, inverse=T)
+    grd$x <- p$x[seq(length(grd$x))]
+    grd$y <- p$y[length(p$y) - rev(seq(length(grd$y))) + 1]
+    
+    ## Set up a land mask
+    ## Calculate the center of each grid cell. A cell is considered to be part
+    ## of the grid if its center lies on the grid.
+    ## TODO Adjust boundary cells to match grid exactly.
+    grd$x.cent <- sapply(seq(length(grd$x) - 1), function(i)
+                         mean(c(grd$x[i], grd$x[i + 1])))
+    grd$y.cent <- sapply(seq(length(grd$y) - 1), function(i)
+                         mean(c(grd$y[i], grd$y[i + 1])))
+    mask <- expand.grid(x=grd$x.cent, y=grd$y.cent)
+    mask$on.grid <- is.in.grid(mask$x.cent, mask$y.cent, grid)
+    ## TODO Why recast this? Convert row to column major? If so, just reverse
+    ## the expand.grid arguments.
+    grd$mask <- matrix(mask$on.grid, nrow(grd$data))
+    grd$data[!grd$mask] <- NA
+    rm(mask)
+    
+    ## Do the actual plotting
+    image(matrix(1, 1, 1), xlim=c(150, 151.25), ylim=c(-5.6, -4.5),
+          col=bg.col, xlab='Longitude', ylab='Latitude')
+    image(grd$data, x=grd$x, y=grd$y, col=cols, add=T, zlim=zlim)
+    return(grd)
+}
+setGeneric("pdd", pddFVCOMGrid)
+setMethod("pdd", "fvcom.grid", imageFVCOMGrid)
+
 
 #' Check if a \code{fvcom.grid} instance is valid.
 validFVCOMGrid <- function(object) {
@@ -268,3 +365,4 @@ setValidity("fvcom.grid", validFVCOMGrid)
 #' @return An instance of the \code{fvcom.grid} class.
 fvcom.grid <- function(filename, proj)
     return(loadFVCOMGrid27(filename, proj))
+
