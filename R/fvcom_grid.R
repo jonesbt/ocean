@@ -64,6 +64,39 @@ loadFVCOMGrid27 <- function(filename, proj) {
                elems.v1=ev[,1], elems.v2=ev[,2], elems.v3=ev[,3]))
 }
 
+#' Checks if the points (xy$x, xy$y) are in the \code{fvcom.grid} \code{grid}.
+#'
+#' @param grid A \code{fvcom.grid} instance.
+#' @param xy A \code{data.frame} with components \code{x} and \code{y} with
+#'           the x and y locations of the points.
+#' @return A vector of logical values of length \code{nrow(xy)}. The ith
+#'         element is \code{TRUE} if (\code{xy$x[i]}, \code{xy$y[i]}) is in
+#'         \code{grid} and \code{FALSE} otherwise.
+findElemFVCOMGrid <- function(grid, xy, units='ll') {
+    if(units == 'll') {
+        grid.x <- grid@nodes.lon        
+        grid.y <- grid@nodes.lat
+    } else if(units == 'm') {
+        grid.x <- grid@nodes.x
+        grid.y <- grid@nodes.y
+    } else {
+        stop("Invalid units, must be 'll' or 'm'.")
+    }
+    elems <- .C('R_find_element', PACKAGE='ocean',
+                x_pts=as.double(xy$x), y_pts=as.double(xy$y), n_pts=nrow(xy),
+                x=as.double(grid.x), y=as.double(grid.y),
+                n_grid_pts=as.integer(grid@elems.n),
+                tri1=as.integer(grid@elems.v1 - 1), ## TODO Subtraction in
+                tri2=as.integer(grid@elems.v2 - 1), ## C code
+                tri3=as.integer(grid@elems.v3 - 1),
+                elems=as.integer(elems))$elems + 1
+    ## TODO Need to modify C code to return elem + 1 except if elem = -1
+    ## TODO C code should use R NA
+    elems[elems == 0] <- NA
+    return(elems)
+}
+setGeneric("find.elem", isInFVCOMGrid)
+setMethod("find.elem", "fvcom.grid", findElemFVCOMGrid)
 
 #' Get the depth at each node in the grid.
 #'
@@ -237,6 +270,19 @@ imageFVCOMGrid <- function(x, z=get.depth(grid), units='ll',
 }
 setMethod("image", "fvcom.grid", imageFVCOMGrid)
 
+#' Checks if the points (xy$x, xy$y) are in the \code{fvcom.grid} \code{grid}.
+#'
+#' @param grid A \code{fvcom.grid} instance.
+#' @param xy A \code{data.frame} with components \code{x} and \code{y} with
+#'           the x and y locations of the points.
+#' @return A vector of logical values of length \code{nrow(xy)}. The ith
+#'         element is \code{TRUE} if (\code{xy$x[i]}, \code{xy$y[i]}) is in
+#'         \code{grid} and \code{FALSE} otherwise.
+isInFVCOMGrid <- function(grid, xy, units='ll')
+    return(!is.na(find.elem(grid, xy, units)))
+setGeneric("is.in.grid", isInFVCOMGrid)
+setMethod("is.in.grid", "fvcom.grid", isInFVCOMGrid)
+
 #' Plot the density of x and y on grid.
 #'
 #' @param grid A \code{fvcom.grid} instance.
@@ -259,14 +305,14 @@ setMethod("image", "fvcom.grid", imageFVCOMGrid)
 #' @param xlim x-limits for the plot.
 #' @param ylim y-limits for the plot.
 #' @param zlim z-limits for the plot. 
-pddFVCOMGrid <- function(grid, x, y, proj, npoints=nrow(xy),
-                             res=1000, sigma=0, log=F,
-                             bg.col='white', col=heat.colors(100), add=F,
-                             xlim=c(min(x), max(x)), ylim=c(min(y), max(y)),
-                             zlim=NA) {
+pddFVCOMGrid <- function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
+                         log=F, bg.col='white', col=heat.colors(100), add=F,
+                         xlim=c(min(xy$x, na.rm=TRUE), max(xy$x, na.rm=TRUE)),
+                         ylim=c(min(xy$y, na.rm=TRUE), max(xy$y, na.rm=TRUE)),
+                         zlim=NA) {
     ## Create a lattice grid for calculating the density.
-    grd <- list(x=seq(xlim[1], xlim[2], by=res[1]),
-                y=seq(ylim[1], ylim[2], by=res[2]))
+    grd <- list(x=seq(xlim[1], xlim[2], by=res),
+                y=seq(ylim[1], ylim[2], by=res))
     grd$data <- matrix(0, nrow=length(grd$x) - 1, ncol=length(grd$y) - 1)
     ## Bin the data into the grid
     bin.data <- function(x, y, grid) {
@@ -279,15 +325,17 @@ pddFVCOMGrid <- function(grid, x, y, proj, npoints=nrow(xy),
                       nrow(grid$data))
         return(out)
     }
-    grd$data <- bin.data(x, y, grd)
+    grd$data <- bin.data(xy$x, xy$y, grd)
     ## Rescale by the number of particles released
-    grd$data <- grd$data / npart.released
+    grd$data <- grd$data / npoints
     ## Apply a 2D Gaussian filter with a 5km std dev
-    ## TODO Project the data, filter, then deproject
-    grd$data <- filter2d(grd$data, 5)
-    
-    if(log)
-        grd$data <- matrix(log10(grd$data + 1e-12), nrow(grd$data))
+    ## TODO Add xy.units as an option
+    grd$data <- filter2d(grd$data, sigma)
+    ## Log transform the data if necessary
+    if(log) {
+        grd$data[grd$data == 0] <- NA ## log10(0) = -Inf
+        grd$data <- matrix(log10(grd$data), nrow(grd$data))
+    }
     if(is.na(zlim[1]))
         zlim <- c(min(grd$data), max(grd$data))
     
@@ -295,7 +343,7 @@ pddFVCOMGrid <- function(grid, x, y, proj, npoints=nrow(xy),
     x.proj <- c(grd$x, rep(grd$x[1], length(grd$y)))
     y.proj <- c(rep(grd$y[1], length(grd$x)), grd$y)
     p <- project(data.frame(x=x.proj, y=y.proj),
-                 proj=proj, inverse=T)
+                 proj=grid@proj, inverse=T)
     grd$x <- p$x[seq(length(grd$x))]
     grd$y <- p$y[length(p$y) - rev(seq(length(grd$y))) + 1]
     ## TODO Project xlim, ylim
@@ -303,7 +351,7 @@ pddFVCOMGrid <- function(grid, x, y, proj, npoints=nrow(xy),
     ## TODO Check this
     x.proj <- c(grd$x, rep(grd$x[1], length(grd$y)))
     y.proj <- c(rep(grd$y[1], length(grd$x)), grd$y)
-    p <- project(data.frame(x=x.proj, y=y.proj), proj=proj, inverse=T)
+    p <- project(data.frame(x=x.proj, y=y.proj), proj=grid@proj, inverse=T)
     grd$x <- p$x[seq(length(grd$x))]
     grd$y <- p$y[length(p$y) - rev(seq(length(grd$y))) + 1]
     
@@ -330,7 +378,7 @@ pddFVCOMGrid <- function(grid, x, y, proj, npoints=nrow(xy),
     return(grd)
 }
 setGeneric("pdd", pddFVCOMGrid)
-setMethod("pdd", "fvcom.grid", imageFVCOMGrid)
+setMethod("pdd", "fvcom.grid", pddFVCOMGrid)
 
 
 #' Check if a \code{fvcom.grid} instance is valid.
