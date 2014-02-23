@@ -82,6 +82,7 @@ findElemFVCOMGrid <- function(grid, xy, units='ll') {
     } else {
         stop("Invalid units, must be 'll' or 'm'.")
     }
+    elems <- integer(nrow(xy))
     elems <- .C('R_find_element', PACKAGE='ocean',
                 x_pts=as.double(xy$x), y_pts=as.double(xy$y), n_pts=nrow(xy),
                 x=as.double(grid.x), y=as.double(grid.y),
@@ -95,9 +96,8 @@ findElemFVCOMGrid <- function(grid, xy, units='ll') {
     elems[elems == 0] <- NA
     return(elems)
 }
-setGeneric("find.elem", isInFVCOMGrid)
+setGeneric("find.elem", findElemFVCOMGrid)
 setMethod("find.elem", "fvcom.grid", findElemFVCOMGrid)
-
 #' Get the depth at each node in the grid.
 #'
 #' @param grid A \code{fvcom.grid} instance.
@@ -145,6 +145,16 @@ getFVCOMNodes <- function(grid)
     return(data.frame(x=grid@nodes.x, y=grid@nodes.y, h=grid@nodes.h))
 setGeneric("get.nodes", getFVCOMNodes)
 setMethod("get.nodes", "fvcom.grid", getFVCOMNodes)
+
+#' Get the value of the projection string.
+#'
+#' @param grid A \code{fvcom.grid} instance.
+#' @return The value of the projection string specified when the grid was
+#'         created.
+getFVCOMProj <- function(grid)
+    return(grid@proj)
+setGeneric("get.proj", getFVCOMProj)
+setMethod("get.proj", "fvcom.grid", getFVCOMProj)
 
 #' Convert a single scalar or node based quantity to element based. 
 #' 
@@ -195,11 +205,11 @@ setMethod("interp", "fvcom.grid", interpFVCOMGrid)
 imageFVCOMGrid <- function(x, z=get.depth(grid), units='ll',
                           col=bathy.colors(100), add=FALSE,
                           xlim=NA, ylim=NA, zlim=NA, legend=FALSE,
-                          border.col=NA, bg.col='white') {
+                          border.col=NA, bg.col='gray') {
+    ## TODO Set aspect ratio automatically
     ## Check the parameters for validity.
     ## Convert the passed in values to an element based quantity.
     z <- interp(grid, z)
-    
     ## Calculate z limits
     if(!is.na(zlim)[1]) {
         ## If zlimits were provided, any values that lie outside of them are
@@ -211,7 +221,6 @@ imageFVCOMGrid <- function(x, z=get.depth(grid), units='ll',
         ## maximum of z ignoring missing values.
         zlim <- c(min(z, na.rm=TRUE), max(z, na.rm=TRUE))
     }
-    
     ## Get the lat/lon or x/y locations of the nodes surrounding the elements.
     ## c(rbind()) interleaves the vectors
     if(units == "ll") { # Lat/lon
@@ -227,7 +236,6 @@ imageFVCOMGrid <- function(x, z=get.depth(grid), units='ll',
     } else {
         stop("Invalid units, options are 'll' or 'm'.")
     }
-
     ## Calculate the colors for the polygons and the borders
     n.cols <- length(col)
     cols.idx <- floor((z - zlim[1]) / (zlim[2] - zlim[1]) * n.cols)
@@ -236,8 +244,7 @@ imageFVCOMGrid <- function(x, z=get.depth(grid), units='ll',
     col <- col[cols.idx]
     if(is.na(border.col)[1])
         border.col <- col
-    
-    ## cut.poly adds NAs after each polygon, ensuring the the polygons are
+    ## cut.poly adds NAs after each polygon, ensuring that the polygons are
     ## not connected to one another by spurious lines.
     cut.poly <- function(x, n.sides=3) {
         n <- length(x) %/% n.sides
@@ -245,12 +252,11 @@ imageFVCOMGrid <- function(x, z=get.depth(grid), units='ll',
         polys[rep(c(rep(T, n.sides), F), n)] <- x
         return(polys)
     }
-
+    ## Set the x and y limits.
     if(is.na(xlim[1]))
         xlim <- c(min(x), max(x))
     if(is.na(ylim[1]))
         ylim <- c(min(y), max(y))
-    
     ## Do the actual plotting
     if(!add)
         image(matrix(1,1,1), col=bg.col,
@@ -258,7 +264,7 @@ imageFVCOMGrid <- function(x, z=get.depth(grid), units='ll',
               ylab = "Latitude",
               xlim=xlim, ylim=ylim)
     polygon(cut.poly(x), cut.poly(y), col=col, border=border.col)
-    #if(legend) (TODO)
+    #if(legend) (TODO Add legend)
     #    legend(min(x), max(y),
     #           legend=c(round(zlim[2], 2), rep("", n.cols-2),
     #           round(zlim[1], 2)),
@@ -304,11 +310,14 @@ setMethod("is.in.grid", "fvcom.grid", isInFVCOMGrid)
 #' @param add Should the plot be added to the current plot?
 #' @param xlim x-limits for the plot.
 #' @param ylim y-limits for the plot.
+#' @param lim.units Units for xlim and ylim. One of 'm' (meters) or 'll'
+#'                  (latitude and longitude).
 #' @param zlim z-limits for the plot. 
 pddFVCOMGrid <- function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
                          log=F, bg.col='white', col=heat.colors(100), add=F,
                          xlim=c(min(xy$x, na.rm=TRUE), max(xy$x, na.rm=TRUE)),
                          ylim=c(min(xy$y, na.rm=TRUE), max(xy$y, na.rm=TRUE)),
+                         lim.units = 'm',
                          zlim=NA) {
     ## Create a lattice grid for calculating the density.
     grd <- list(x=seq(xlim[1], xlim[2], by=res),
@@ -328,12 +337,12 @@ pddFVCOMGrid <- function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
     grd$data <- bin.data(xy$x, xy$y, grd)
     ## Rescale by the number of particles released
     grd$data <- grd$data / npoints
-    ## Apply a 2D Gaussian filter with a 5km std dev
+    ## Apply a 2D Gaussian filter with std dev = sigma
     ## TODO Add xy.units as an option
     grd$data <- filter2d(grd$data, sigma)
     ## Log transform the data if necessary
     if(log) {
-        grd$data[grd$data == 0] <- NA ## log10(0) = -Inf
+        grd$data[grd$data == 0] <- NA ## Because log10(0) = -Inf
         grd$data <- matrix(log10(grd$data), nrow(grd$data))
     }
     if(is.na(zlim[1]))
@@ -343,11 +352,15 @@ pddFVCOMGrid <- function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
     x.proj <- c(grd$x, rep(grd$x[1], length(grd$y)))
     y.proj <- c(rep(grd$y[1], length(grd$x)), grd$y)
     p <- project(data.frame(x=x.proj, y=y.proj),
-                 proj=grid@proj, inverse=T)
+                 proj=get.proj(grid), inverse=T)
     grd$x <- p$x[seq(length(grd$x))]
     grd$y <- p$y[length(p$y) - rev(seq(length(grd$y))) + 1]
-    ## TODO Project xlim, ylim
-    
+    ## Project xlim and ylim if necessary
+    if(lim.units == 'm') {
+        lim.proj <- project(data.frame(x=xlim, y=ylim))
+        xlim <- lim.proj$x
+        xlim <- lim.proj$y
+    }
     ## TODO Check this
     x.proj <- c(grd$x, rep(grd$x[1], length(grd$y)))
     y.proj <- c(rep(grd$y[1], length(grd$x)), grd$y)
@@ -364,7 +377,8 @@ pddFVCOMGrid <- function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
     grd$y.cent <- sapply(seq(length(grd$y) - 1), function(i)
                          mean(c(grd$y[i], grd$y[i + 1])))
     mask <- expand.grid(x=grd$x.cent, y=grd$y.cent)
-    mask$on.grid <- is.in.grid(mask$x.cent, mask$y.cent, grid)
+    print(is.in.grid(grid, data.frame(x=mask$x.cent, y=mask$y.cent)))
+    mask$on.grid <- is.in.grid(grid, data.frame(x=mask$x.cent, y=mask$y.cent))
     ## TODO Why recast this? Convert row to column major? If so, just reverse
     ## the expand.grid arguments.
     grd$mask <- matrix(mask$on.grid, nrow(grd$data))
@@ -372,7 +386,7 @@ pddFVCOMGrid <- function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
     rm(mask)
     
     ## Do the actual plotting
-    image(matrix(1, 1, 1), xlim=c(150, 151.25), ylim=c(-5.6, -4.5),
+    image(matrix(1, 1, 1), xlim=xlim, ylim=ylim,
           col=bg.col, xlab='Longitude', ylab='Latitude')
     image(grd$data, x=grd$x, y=grd$y, col=cols, add=T, zlim=zlim)
     return(grd)
