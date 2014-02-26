@@ -93,7 +93,9 @@ findElemFVCOMGrid <- function(grid, xy, units='ll') {
                 elems=as.integer(elems))$elems + 1
     ## TODO Need to modify C code to return elem + 1 except if elem = -1
     ## TODO C code should use R NA
+    print(elems)
     elems[elems == 0] <- NA
+    print(sum(!is.na(elems)))
     return(elems)
 }
 setGeneric("find.elem", findElemFVCOMGrid)
@@ -314,11 +316,12 @@ setMethod("is.in.grid", "fvcom.grid", isInFVCOMGrid)
 #'                  (latitude and longitude).
 #' @param zlim z-limits for the plot. 
 pddFVCOMGrid <- function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
-                         log=F, bg.col='white', col=heat.colors(100), add=F,
+                         log=F, bg.col='gray', col=heat.colors(100), add=F,
                          xlim=c(min(xy$x, na.rm=TRUE), max(xy$x, na.rm=TRUE)),
                          ylim=c(min(xy$y, na.rm=TRUE), max(xy$y, na.rm=TRUE)),
                          lim.units = 'm',
                          zlim=NA) {
+    ## TODO Use a matrix with rownames and colnames attrs
     ## Create a lattice grid for calculating the density.
     grd <- list(x=seq(xlim[1], xlim[2], by=res),
                 y=seq(ylim[1], ylim[2], by=res))
@@ -335,39 +338,35 @@ pddFVCOMGrid <- function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
         return(out)
     }
     grd$data <- bin.data(xy$x, xy$y, grd)
+    if(sum(grd$data > 0) == 0)
+        stop('No points were within the grid.')
     ## Rescale by the number of particles released
     grd$data <- grd$data / npoints
     ## Apply a 2D Gaussian filter with std dev = sigma
     ## TODO Add xy.units as an option
-    grd$data <- filter2d(grd$data, sigma)
+    if(sigma > 0)
+        grd$data <- filter2d(grd$data, sigma)
     ## Log transform the data if necessary
     if(log) {
         grd$data[grd$data == 0] <- NA ## Because log10(0) = -Inf
         grd$data <- matrix(log10(grd$data), nrow(grd$data))
     }
     if(is.na(zlim[1]))
-        zlim <- c(min(grd$data), max(grd$data))
-    
+        zlim <- c(min(grd$data, na.rm=TRUE), max(grd$data, na.rm=TRUE))
     ## Project the grid x,y into lat/lon
     x.proj <- c(grd$x, rep(grd$x[1], length(grd$y)))
     y.proj <- c(rep(grd$y[1], length(grd$x)), grd$y)
     p <- project(data.frame(x=x.proj, y=y.proj),
-                 proj=get.proj(grid), inverse=T)
+                 proj=get.proj(grid), inverse=TRUE)
     grd$x <- p$x[seq(length(grd$x))]
     grd$y <- p$y[length(p$y) - rev(seq(length(grd$y))) + 1]
     ## Project xlim and ylim if necessary
     if(lim.units == 'm') {
-        lim.proj <- project(data.frame(x=xlim, y=ylim))
+        lim.proj <- project(data.frame(x=xlim, y=ylim),
+                            proj=get.proj(grid), inverse=TRUE)
         xlim <- lim.proj$x
-        xlim <- lim.proj$y
+        ylim <- lim.proj$y
     }
-    ## TODO Check this
-    x.proj <- c(grd$x, rep(grd$x[1], length(grd$y)))
-    y.proj <- c(rep(grd$y[1], length(grd$x)), grd$y)
-    p <- project(data.frame(x=x.proj, y=y.proj), proj=grid@proj, inverse=T)
-    grd$x <- p$x[seq(length(grd$x))]
-    grd$y <- p$y[length(p$y) - rev(seq(length(grd$y))) + 1]
-    
     ## Set up a land mask
     ## Calculate the center of each grid cell. A cell is considered to be part
     ## of the grid if its center lies on the grid.
@@ -377,8 +376,8 @@ pddFVCOMGrid <- function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
     grd$y.cent <- sapply(seq(length(grd$y) - 1), function(i)
                          mean(c(grd$y[i], grd$y[i + 1])))
     mask <- expand.grid(x=grd$x.cent, y=grd$y.cent)
-    print(is.in.grid(grid, data.frame(x=mask$x.cent, y=mask$y.cent)))
-    mask$on.grid <- is.in.grid(grid, data.frame(x=mask$x.cent, y=mask$y.cent))
+    print(summary(mask))
+    mask$on.grid <- is.in.grid(grid, data.frame(x=mask$x, y=mask$y))
     ## TODO Why recast this? Convert row to column major? If so, just reverse
     ## the expand.grid arguments.
     grd$mask <- matrix(mask$on.grid, nrow(grd$data))
@@ -388,7 +387,7 @@ pddFVCOMGrid <- function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
     ## Do the actual plotting
     image(matrix(1, 1, 1), xlim=xlim, ylim=ylim,
           col=bg.col, xlab='Longitude', ylab='Latitude')
-    image(grd$data, x=grd$x, y=grd$y, col=cols, add=T, zlim=zlim)
+    image(grd$data, x=grd$x, y=grd$y, col=col, add=TRUE, zlim=zlim)
     return(grd)
 }
 setGeneric("pdd", pddFVCOMGrid)
