@@ -83,19 +83,19 @@ findElemFVCOMGrid <- function(grid, xy, units='ll') {
         stop("Invalid units, must be 'll' or 'm'.")
     }
     elems <- integer(nrow(xy))
+    ## TODO Look into ways to avoid copying the node/element data.
     elems <- .C('R_find_element', PACKAGE='ocean',
-                x_pts=as.double(xy$x), y_pts=as.double(xy$y), n_pts=nrow(xy),
-                x=as.double(grid.x), y=as.double(grid.y),
+                x_pts=as.double(xy$x), y_pts=as.double(-xy$y), n_pts=nrow(xy),
+                x=as.double(grid.x), y=as.double(-grid.y),
                 n_grid_pts=as.integer(grid@elems.n),
-                tri1=as.integer(grid@elems.v1 - 1), ## TODO Subtraction in
-                tri2=as.integer(grid@elems.v2 - 1), ## C code
-                tri3=as.integer(grid@elems.v3 - 1),
+                v1=as.integer(grid@elems.v1 - 1), ## TODO Subtraction in
+                v2=as.integer(grid@elems.v2 - 1), ## C code
+                v3=as.integer(grid@elems.v3 - 1),
                 elems=as.integer(elems))$elems + 1
     ## TODO Need to modify C code to return elem + 1 except if elem = -1
     ## TODO C code should use R NA
-    print(elems)
+    #print(sum(elems == 0))
     elems[elems == 0] <- NA
-    print(sum(!is.na(elems)))
     return(elems)
 }
 setGeneric("find.elem", findElemFVCOMGrid)
@@ -376,7 +376,6 @@ pddFVCOMGrid <- function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
     grd$y.cent <- sapply(seq(length(grd$y) - 1), function(i)
                          mean(c(grd$y[i], grd$y[i + 1])))
     mask <- expand.grid(x=grd$x.cent, y=grd$y.cent)
-    print(summary(mask))
     mask$on.grid <- is.in.grid(grid, data.frame(x=mask$x, y=mask$y))
     ## TODO Why recast this? Convert row to column major? If so, just reverse
     ## the expand.grid arguments.
