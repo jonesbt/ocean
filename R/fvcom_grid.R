@@ -392,6 +392,31 @@ pddFVCOMGrid <- function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
 setGeneric("pdd", pddFVCOMGrid)
 setMethod("pdd", "fvcom.grid", pddFVCOMGrid)
 
+#' Plot an instance of the \code{fvcom.grid} class and overlay the 
+#' trajectories given by \code{xy}.
+#' @param x A \code{fvcom.grid} instance
+#' @param xy A \code{list} with matrices \code{x} and \code{y} components that
+#'           contain the trajectories to plot. The columns of \code{xy$x} are
+#'           plotted against the columns of \code{xy$y}.
+#' @param plot.units The units for plotting. Either 'm' for meters or 'll' for
+#'                    latitude and longitude.
+#' @param xy.units The units of \code{xy}. Either 'm' for meters or 'll' for
+#'                 latitude and longitude.
+#' @param col A vector of colors for each trajectory. If this vector is
+#'            shorter than \code{nrow(xy)}, it is recycled to the appropriate
+#'            length. If it is longer than \code{nrow(xy)} only the first
+#'            \code{nrow(xy)} components are used.
+#' @param lwd The line width for the trajectories.
+plotFVCOMGrid <- function(x, xy, plot.units='ll', xy.units='ll', col='black',
+                          lwd=1) {
+    image(x, z=1, col='white', units=plot.units)
+    if((xy.units == 'm') & (plot.units == 'll'))
+        ## TODO PROJECT XY
+    if((xy.units == 'll') & (plot.units == 'm'))
+        ## TODO PROJECT XY
+    matplot(xy$x, xy$y, col=col, lwd=lwd)
+}
+setMethod("plot", "fvcom.grid", plotFVCOMGrid)
 
 #' Check if a \code{fvcom.grid} instance is valid.
 validFVCOMGrid <- function(object) {
