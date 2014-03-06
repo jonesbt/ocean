@@ -397,7 +397,8 @@ setMethod("pdd", "fvcom.grid", pddFVCOMGrid)
 #' @param x A \code{fvcom.grid} instance
 #' @param xy A \code{list} with matrices \code{x} and \code{y} components that
 #'           contain the trajectories to plot. The columns of \code{xy$x} are
-#'           plotted against the columns of \code{xy$y}.
+#'           plotted against the columns of \code{xy$y}, so each particle
+#'           trajectory should be in a column and each time index in a row.
 #' @param plot.units The units for plotting. Either 'm' for meters or 'll' for
 #'                    latitude and longitude.
 #' @param xy.units The units of \code{xy}. Either 'm' for meters or 'll' for
@@ -408,13 +409,22 @@ setMethod("pdd", "fvcom.grid", pddFVCOMGrid)
 #'            \code{nrow(xy)} components are used.
 #' @param lwd The line width for the trajectories.
 plotFVCOMGrid <- function(x, xy, plot.units='ll', xy.units='ll', col='black',
-                          lwd=1) {
-    image(x, z=1, col='white', units=plot.units)
-    if((xy.units == 'm') & (plot.units == 'll'))
-        ## TODO PROJECT XY
-    if((xy.units == 'll') & (plot.units == 'm'))
-        ## TODO PROJECT XY
-    matplot(xy$x, xy$y, col=col, lwd=lwd)
+                          lwd=1, lty=1) {
+    ## Project xy if necessary
+    if((xy.units == 'm') & (plot.units == 'll')) {
+        xy.proj = project(data.frame(x=as.vector(xy$x), y=as.vector(xy$y)),
+                          proj=get.proj(x), inverse=TRUE)
+        xy$x = matrix(xy.proj$x, nrow=nrow(xy$x))
+        xy$y = matrix(xy.proj$y, nrow=nrow(xy$y))
+    } else if((xy.units == 'll') & (plot.units == 'm')) {
+        xy.proj = project(data.frame(x=as.vector(xy$x), y=as.vector(xy$y)),
+                          proj=get.proj(x), inverse=FALSE)
+        xy$x = matrix(xy.proj$x, nrow=nrow(xy$x))
+        xy$y = matrix(xy.proj$y, nrow=nrow(xy$y))
+    }
+    ## Plot the background, then plot the trajectories
+    image(x, col='white', units=plot.units)
+    matlines(xy$x, xy$y, col=col, lwd=lwd, lty=lty)
 }
 setMethod("plot", "fvcom.grid", plotFVCOMGrid)
 
