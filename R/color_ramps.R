@@ -3,9 +3,14 @@
 #' \code{bathy.colors(n)} generates a sequence of \eqn{n} colors along a
 #' linear scale from light grey to pure blue. 
 #'
-#' \param n The number of colors to return.
-#' \param alpha Alpha values to be passed to \code{rgb()}.
-#' \return A vector of blue scale colors.
+#' @param n The number of colors to return.
+#' @param alpha Alpha values to be passed to \code{rgb()}.
+#' @return A vector of blue scale colors.
+#'
+#' @examples{
+#' # Plot a colorbar using bathy.colors
+#' image(matrix(seq(100), 100), col=jet.colors(100))
+#' }
 bathy.colors <- function(n, alpha=1)
     cols <- rgb(seq(0.9,0,len=n), seq(0.9,0,len=n), 1, alpha)
 
@@ -20,6 +25,11 @@ bathy.colors <- function(n, alpha=1)
 #' @param alpha The transparency value of the colors. See \code{?rgb} for
 #'              details.
 #' @return A vecotr of colors along the jet colorramp.
+#'
+#' @examples {
+#' # Plot a colorbar with jet.colors
+#' image(matrix(seq(100), 100), col=jet.colors(100))
+#' }
 jet.colors <- function(n, alpha=1) {
     if(n > 0) {
         if(length(alpha) != 1 & length(alpha) != n) {
