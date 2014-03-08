@@ -17,6 +17,7 @@
 #'     \item{elems.v1}{1st set of node indices}
 #'     \item{elems.v2}{2nd set of node indices}
 #'     \item{elems.v3}{3rd set of node indices}
+#'     \item{elems.size}{The area of each element (m^2)}.
 #'     \item{proj}{A string that could be passed to proj4::project to convert
 #'                 x and y values to latitude and longitude.}
 #'   }
@@ -34,6 +35,7 @@ setClass("fvcom.grid",
              elems.v1="integer",
              elems.v2="integer",
              elems.v3="integer",
+             elems.size="numeric",
              proj="character"
              )
          )
@@ -56,6 +58,11 @@ loadFVCOMGrid27 <- function(filename, proj) {
         ll <- data.frame(x=NULL, y=NULL)
     }
     ev <- ncvar_get(ncid, 'nv') ## Element vertices
+    elem.size <- sapply(seq(nrow(ev)), function(i)
+        det(matrix(c(x[ev[i, 1]], x[ev[i, 2]], x[ev[i, 3]],
+                     y[ev[i, 1]], y[ev[i, 2]], y[ev[i, 3]],
+                     1, 1, 1),
+                   3, 3, byrow=T)) / 2
     nc_close(ncid)
     return(new("fvcom.grid",
                nodes.n=length(x), nodes.x=x, nodes.y=y, nodes.h=h,
