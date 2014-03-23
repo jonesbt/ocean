@@ -1,18 +1,31 @@
-quiver <- function(x, y, u, v, length=0.25, scale=1, col="black", add=F) {
-    #Scale arrow size relative to window size
-    scale <- (par('fin')[1] * par('cxy')[1] / par('cin')[1]) * scale / max(sqrt(u^2 + v^2), na.rm=T)
-#    length <- scale * length * max(sqrt(u^2 + v^2))
-    #Plot at each (x,y) a vector of length (u,v) with head size size*(length of arrow)
-    print(scale)
-    print(max(u, na.rm=T))
-    if(!add)
-        plot(0, type ='n',
-             xlim = c(min(x, na.rm=T) - max(abs(u)*scale, na.rm=T), max(x, na.rm=T) + max(abs(u)*scale, na.rm=T)),
-             ylim = c(min(y, na.rm=T) - max(abs(v)*scale, na.rm=T), max(y, na.rm=T) + max(abs(v)*scale, na.rm=T)),
-             xlab = "x",
-             ylab = "y")
-    all.data <- data.frame(x, y, u, v)[u != 0 || v != 0,]
-  
-    with(all.data,
-         arrows(x, y, x + u * scale, y + v * scale, length=length))
+# Origin: Nemo
+
+##
+#  Plots arrows indicating the velocity field along the grid defined by
+#  expand.grid(x,y). The greatest magnitude velocity has an arrow with length
+#  equal to the shortest distance between any 2 nodes. The u and v velocities
+#  should be column major matrices or vectors of length length(x) * length(y). If zlim is provided, the arrows are scaled from zmin to zmax.
+#  The arrows are drawn at nx equally spaced x locations and ny equally
+#  spawced y locations.
+#
+#  \param x The x coordinates
+#  \param y The y coordinates
+#  \param u The u velocities
+#  \param v The v velocities
+#  \param nx Number of x locations
+#  \param ny Number of y locations
+#  \param add Should the quivers be added to the current plot (default false)
+#  \param zlim Scaling parameters for the arrow lengths
+source("../src/R/quiver_vector.R") # TODO Convert to package
+source("../src/R/quiver_matrix.R")
+quiver <- function(x, y, u, v, nx=length(x), ny=length(y), add=F, zlim=NA) {
+    ## Check arguments and call more specific function
+    if(length(u) == length(x)) {
+        quiver_vector(x, y, u, v, nx, add, zlim)
+    } else if(length(u) == (length(x) * length(y))) {
+        quiver_matrix(x, y, u, v, nx, ny, add, zlim)
+    } else {
+        print("Unsupported dimensions for x, y, u, and v")
+        return()
+    }
 }

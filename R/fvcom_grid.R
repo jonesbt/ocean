@@ -62,7 +62,7 @@ loadFVCOMGrid27 <- function(filename, proj) {
         det(matrix(c(x[ev[i, 1]], x[ev[i, 2]], x[ev[i, 3]],
                      y[ev[i, 1]], y[ev[i, 2]], y[ev[i, 3]],
                      1, 1, 1),
-                   3, 3, byrow=T)) / 2
+                   3, 3, byrow=T))) / 2
     nc_close(ncid)
     return(new("fvcom.grid",
                nodes.n=length(x), nodes.x=x, nodes.y=y, nodes.h=h,
@@ -232,6 +232,7 @@ setMethod("interp", "fvcom.grid", interpFVCOMGrid)
 #' @param zlim z-limits for the plot. 
 #' @param border.col Color of the element borders. If not provided the borders
 #'                   will be colored to match the adjacent polygons.
+#' @param border.lwd Line width of the element borders.
 #' @param bg.col Color of the background. The background is only plotted if
 #'               add=F, otherwise bg.col is ignored.
 #'
@@ -248,7 +249,7 @@ setMethod("interp", "fvcom.grid", interpFVCOMGrid)
 imageFVCOMGrid <- function(x, z=get.depth(grid), units='ll',
                           col=bathy.colors(100), add=FALSE,
                           xlim=NA, ylim=NA, zlim=NA, legend=FALSE,
-                          border.col=NA, bg.col='gray') {
+                          border.col=NA, bg.col='gray', border.lwd=1) {
     ## TODO Set aspect ratio automatically
     ## Check the parameters for validity.
     ## Convert the passed in values to an element based quantity.
@@ -306,7 +307,7 @@ imageFVCOMGrid <- function(x, z=get.depth(grid), units='ll',
               xlab = "Longitude",
               ylab = "Latitude",
               xlim=xlim, ylim=ylim)
-    polygon(cut.poly(x), cut.poly(y), col=col, border=border.col)
+    polygon(cut.poly(x), cut.poly(y), col=col, border=border.col, lwd=border.lwd)
     #if(legend) (TODO Add legend)
     #    legend(min(x), max(y),
     #           legend=c(round(zlim[2], 2), rep("", n.cols-2),
