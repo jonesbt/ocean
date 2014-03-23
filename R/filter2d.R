@@ -1,4 +1,11 @@
-## Applies a 2d Gaussian filter to mat with a standard deviation of r cells.
+#' Applies a 2d Gaussian filter to \code{mat} with a standard deviation of r
+#' cells.
+#'
+#' Applies a Gaussian blur to a 2D matrix. The matrix is first convoluted
+#' with the filter along rows, then along columns.
+#'
+#' @param mat The matrix to filter.
+#' @param r The standard deviation of the filter in matrix cells.
 filter.vec <- function(vec, r, i) {
     vec.out <- vec
     for(i in seq(length(vec))) {
