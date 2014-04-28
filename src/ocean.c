@@ -37,7 +37,9 @@ int is_in_triangle(double x_pt, double y_pt,
   double b1 = sign(x_pt, x[0], x[1], y_pt, y[0], y[1]);
   double b2 = sign(x_pt, x[1], x[2], y_pt, y[1], y[2]);
   double b3 = sign(x_pt, x[2], x[0], y_pt, y[2], y[0]);
-  return((b1 < 0.0) && (b2 < 0.0) && (b3 < 0.0));
+  return 
+    ((b1 < 0.0) && (b2 < 0.0) && (b3 < 0.0)) ||
+    ((b1 > 0.0) && (b2 > 0.0) && (b3 > 0.0));
 }
 
 int find_element(double x_pt, double y_pt,
