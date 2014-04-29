@@ -113,7 +113,7 @@ loadFVCOMGrid27 <- function(filename, proj) {
 #' elems = find.elem(ocean.demo.grid, lattice.grid, units="m")
 #' # Plot the result
 #' plot(lattice.grid$x, lattice.grid$y, pch=15,
-#'      col=heat.colors(max(elems, na.rm=TRUE) + 2)[elems+2])
+#'      col=jet.colors(max(elems, na.rm=TRUE) * 2)[elems+2])
 #' }
 #'
 #' @name find.elem
@@ -152,7 +152,7 @@ function(grid, xy, units='ll') {
 #' Get the depth at each node in the grid.
 #'
 #' @param grid A \code{fvcom.grid} instance.
-#' @return A vector of length get.nnodes(grid) with the depth at each node.
+#' @return A vector of length \code{get.nnodes(grid)} with the depth at each node.
 #' 
 #' @name get.depth
 #' @aliases get.depth,fvcom.grid-method
@@ -214,8 +214,9 @@ function(grid)
 #' Get the values of the nodes in the grid.
 #'
 #' @param grid A \code{fvcom.grid} instance.
-#' @return A \code{data.frame} with \code{x}, \code{y}, and \code{h} elements
-#' that correspond to the x, y, and depth of each node.
+#' @return A \code{data.frame} with \code{x}, \code{y}, \code{h}, \code{lon},
+#' and \code{lat} elements that correspond to the x, y, depth, longitude, and
+#' latitude of each node.
 #'
 #' @name get.nodes
 #' @aliases get.nodes,fvcom.grid-method
@@ -224,7 +225,8 @@ function(grid)
 setGeneric("get.nodes", function(grid, ...) {})
 setMethod("get.nodes", "fvcom.grid",
 function(grid)
-    return(data.frame(x=grid@nodes.x, y=grid@nodes.y, h=grid@nodes.h))
+    return(data.frame(x=grid@nodes.x, y=grid@nodes.y, h=grid@nodes.h,
+                      lon=grid@nodes.lon, lat=grid@nodes.lat))
 )
 
 #' Get the value of the projection string.
@@ -406,8 +408,8 @@ function(x, z=get.depth(x), units='ll',
 #' @examples {
 #' # Create a regular grid of test points
 #' nodes = get.nodes(ocean.demo.grid)
-#' lattice.grid = expand.grid(x=seq(min(nodes$x), max(nodes$x), len=10),
-#'                            y=seq(min(nodes$y), max(nodes$y), len=10))
+#' lattice.grid = expand.grid(x=seq(min(nodes$x), max(nodes$x), len=50),
+#'                            y=seq(min(nodes$y), max(nodes$y), len=50))
 #' # Check which points are in the grid
 #' in.grid = is.in.grid(ocean.demo.grid, lattice.grid, units="m")
 #' # Plot the points that are in the grid
@@ -460,10 +462,12 @@ isInFVCOMGrid <- function(grid, xy, units='ll')
 #' @examples {
 #' # Generate artificial data from a Gaussian distribution
 #' nodes = get.nodes(ocean.demo.grid)
-#' x = rnorm(10000, mean(nodes$x), 1000)
-#' y = rnorm(10000, mean(nodes$y), 1000)
+#' set.seed(1)
+#' x = rnorm(50000, mean(nodes$x), sd(nodes$x))
+#' y = rnorm(50000, mean(nodes$y), sd(nodes$y))
 #' # Plot the density of the mixture
-#' grd = pdd(ocean.demo.grid, data.frame(x=x, y=y), res=100)
+#' res = (max(nodes$x) - min(nodes$x)) / 50
+#' grd = pdd(ocean.demo.grid, data.frame(x=x, y=y), res=res, sigma=5)
 #' }
 #'
 #' @references {
@@ -481,8 +485,8 @@ setGeneric("pdd", function(grid, xy, ...) {})
 setMethod("pdd", "fvcom.grid",
 function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
          log=F, bg.col='gray', col=heat.colors(100), add=F,
-         xlim=c(min(xy$x, na.rm=TRUE), max(xy$x, na.rm=TRUE)),
-         ylim=c(min(xy$y, na.rm=TRUE), max(xy$y, na.rm=TRUE)),
+         xlim=c(min(get.nodes(grid)$x), max(get.nodes(grid)$x)),
+         ylim=c(min(get.nodes(grid)$y), max(get.nodes(grid)$y)),
          lim.units = 'm',
          zlim=NA) {
     ## TODO Use a matrix with rownames and colnames attrs
@@ -552,9 +556,8 @@ function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
     ## Calculate the plotting limits
     if(is.na(zlim[1]))
         zlim <- c(min(grd$data, na.rm=TRUE), max(grd$data, na.rm=TRUE))
-    xlim = c(min(grd$x), max(grd$x))
-    ylim = c(min(grd$y), max(grd$y))
-    
+    xlim = c(max(min(grd$x), xlim[1]), min(max(grd$x), xlim[2]))
+    ylim = c(max(min(grd$y), ylim[1]), min(max(grd$y), ylim[2]))
     ## Do the actual plotting
     image(matrix(1, 1, 1), xlim=xlim, ylim=ylim,
           col=bg.col, xlab='Longitude', ylab='Latitude')
@@ -580,9 +583,10 @@ function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
 #' @examples {
 #' # Create a set of random trajectories.
 #' nodes = get.nodes(ocean.demo.grid)
-#' x = apply(matrix(rnorm(10000, mean(nodes$lon)), 100), 2, cumsum)
-#' y = apply(matrix(rnorm(10000, mean(nodes$lat)), 100), 2, cumsum)
-#' lines(ocean.demo.grid, list(x=x, y=y))
+#' set.seed(1)
+#' x = apply(matrix(rnorm(1000, 0, 0.01), 250), 2, cumsum) - 69.5
+#' y = apply(matrix(rnorm(1000, 0, 0.01), 250), 2, cumsum) + 42.5
+#' lines(ocean.demo.grid, list(x=x, y=y), lty=1)
 #' }
 #'
 #' @name lines
