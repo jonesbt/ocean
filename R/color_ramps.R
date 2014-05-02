@@ -7,12 +7,12 @@
 #' @param alpha Alpha values to be passed to \code{rgb()}.
 #' @return A vector of blue scale colors.
 #'
-#' @examples{
+#' @examples {
 #' # Plot a colorbar using bathy.colors
-#' image(matrix(seq(100), 100), col=jet.colors(100))
+#' image(matrix(seq(100), 100), col=bathy.colors(100))
 #' }
 bathy.colors <- function(n, alpha=1)
-    cols <- rgb(seq(0.9,0,len=n), seq(0.9,0,len=n), 1, alpha)
+    return(rgb(seq(0.9,0,len=n), seq(0.9,0,len=n), 1, alpha))
 
 ## TODO: Use hsv colors or rgb to support alpha values
 #' Generate a sequence of colors alog the jet colormap.

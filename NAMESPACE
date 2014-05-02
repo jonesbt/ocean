@@ -1,6 +1,12 @@
 useDynLib(ocean)
 
-import(ncdf, proj4)
-export(att.plot, bathy.colors, calculate.element.size, filter2d,
-       find.elem, is.in.grid, jet.colors, lagrangian.pdd, att.plot,
-       spaghetti)
+## Import the packages
+import(methods, ncdf4, proj4)
+
+## Export general functions
+export(bathy.colors, jet.colors)
+
+## Export the fvcom.grid class and its methods.
+importFrom("graphics", image)
+exportClasses(fvcom.grid)
+exportMethods(find.elem, get.depth, get.elems, get.nelems, get.nnodes, get.nodes, get.proj, image, interp, is.in.grid, lines, pdd)

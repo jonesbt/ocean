@@ -23,6 +23,9 @@
 #'   }
 #' 
 #' @references http://fvcom.smast.umassd.edu/FVCOM/
+#' @name fvcom.grid-class
+#' @rdname fvcom.grid-class
+#' @exportClass fvcom.grid
 setClass("fvcom.grid",
          representation(
              nodes.n="integer",
@@ -40,12 +43,29 @@ setClass("fvcom.grid",
              )
          )
 
+#' An example instance of the \code{fvcom.grid} class.
+#'
+#' A dataset containing an example of the \code{fvcom.grid} class. This
+#' example was generated for the purposes of demonstrating the plotting
+#' functions of this package and is not an actual grid. The grid uses
+#' bathymetry from NOAA's ETOPO1 dataset, which is available at
+#' (http://www.ngdc.noaa.gov/mgg/global/global.html).
+#'
+#' @docType data
+#' @keywords datasets
+#' @format A \code{fvcom.grid} instance.
+#' @name ocean.demo.grid
+NULL
+ 
 #' Load an FVCOM grid from a NetCDF output file.
 #'
 #' Loads enough of an FVCOM grid to use the other methods associated with
 #' the \code{fvcom.grid} class. The (x,y,h) locations of the nodes and their
 #' connections to form an unstructured triangular mesh are loaded.
 #' @param filename The name of an output NetCDF file from FVCOM 2.7.
+#' @param proj A projection string which could be passed to
+#'   \code{proj4::project} and converts between the x,y and lat,lon coordinate
+#'   systems for this grid.
 #' @return An instance of the \code{fvcom.grid} class.
 loadFVCOMGrid27 <- function(filename, proj) {
     ncid <- nc_open(filename)
@@ -81,22 +101,28 @@ loadFVCOMGrid27 <- function(filename, proj) {
 #' @param grid A \code{fvcom.grid} instance.
 #' @param xy A \code{data.frame} with components \code{x} and \code{y} with
 #'           the x and y locations of the points.
+#' @param units Either 'll' for latitude and longitude or 'm' for meters.
 #' @return A vector of integer values of length \code{nrow(xy)}. The values
 #'         are indexes into the elements of grid.
 #'
 #' @examples {
-#' # Load the example grid
-#' data(ocean.demo.grid)
 #' # Create a regular matrix grid
-#' lattice.grid = expand.grid(seq(min(grid@nodes.x), max(grid@nodes.x),
-#'                            len=10), y=seq(min(grid@nodes.y),
-#'                            max(grid@nodes.y), len=10))
+#' nodes = get.nodes(ocean.demo.grid)
+#' lattice.grid = expand.grid(x=seq(min(nodes$x), max(nodes$x), len=50),
+#'                            y=seq(min(nodes$y), max(nodes$y), len=50))
 #' elems = find.elem(ocean.demo.grid, lattice.grid, units="m")
 #' # Plot the result
 #' plot(lattice.grid$x, lattice.grid$y, pch=15,
-#'      col=heat.colors(max(elems, na.rm=TRUE) + 2)[elems+2])
+#'      col=jet.colors(max(elems, na.rm=TRUE) * 2)[elems+2])
 #' }
-findElemFVCOMGrid <- function(grid, xy, units='ll') {
+#'
+#' @name find.elem
+#' @aliases find.elem,fvcom.grid-method
+#' @docType methods
+#' @rdname find.elem-methods
+setGeneric("find.elem", function(grid, xy, ...) {})
+setMethod("find.elem", "fvcom.grid",
+function(grid, xy, units='ll') {
     if(units == 'll') {
         grid.x <- grid@nodes.lon        
         grid.y <- grid@nodes.lat
@@ -122,16 +148,21 @@ findElemFVCOMGrid <- function(grid, xy, units='ll') {
     elems[elems == 0] <- NA
     return(elems)
 }
-setGeneric("find.elem", findElemFVCOMGrid)
-setMethod("find.elem", "fvcom.grid", findElemFVCOMGrid)
+)
 #' Get the depth at each node in the grid.
 #'
 #' @param grid A \code{fvcom.grid} instance.
-#' @return A vector of length get.nnodes(grid) with the depth at each node.
-getFVCOMDepth <- function(grid)
+#' @return A vector of length \code{get.nnodes(grid)} with the depth at each node.
+#' 
+#' @name get.depth
+#' @aliases get.depth,fvcom.grid-method
+#' @docType methods
+#' @rdname get.depth-methods
+setGeneric("get.depth", function(grid, ...) {})
+setMethod("get.depth", "fvcom.grid",
+function(grid)
     return(grid@nodes.h)
-setGeneric("get.depth", getFVCOMDepth)
-setMethod("get.depth", "fvcom.grid", getFVCOMDepth)
+)
 
 #' Get the indices of the element vertices in the grid.
 #'
@@ -139,48 +170,80 @@ setMethod("get.depth", "fvcom.grid", getFVCOMDepth)
 #' @return A \code{data.frame} with \code{v1}, \code{v2}, and \code{v3}
 #' elements that correspond to the indices of the nodes at vertices 1, 2, and
 #' 3.
-getFVCOMElems <- function(grid)
+#'
+#' @name get.elems
+#' @aliases get.elems,fvcom.grid-method
+#' @docType methods
+#' @rdname get.elems-methods
+setGeneric("get.elems", function(grid, ...) {})
+setMethod("get.elems", "fvcom.grid",
+function(grid)
     return(data.frame(v1=grid@elems.v1, v2=grid@elems.v2, v3=grid@elems.v3))
-setGeneric("get.elems", getFVCOMElems)
-setMethod("get.elems", "fvcom.grid", getFVCOMElems)
+)
 
 #' Get the number of elements in the grid.
 #'
 #' @param grid A \code{fvcom.grid} instance.
 #' @return The number of elements in \code{grid}.
-getFVCOMNElems <- function(grid)
+#'
+#' @name get.nelems
+#' @aliases get.nelems,fvcom.grid-method
+#' @docType methods
+#' @rdname get.nelems-methods
+setGeneric("get.nelems", function(grid, ...) {})
+setMethod("get.nelems", "fvcom.grid",
+function(grid)
     return(grid@elems.n)
-setGeneric("get.nelems", getFVCOMNElems)
-setMethod("get.nelems", "fvcom.grid", getFVCOMNElems)
+)
 
 #' Get the number of nodes in the grid.
 #'
 #' @param grid A \code{fvcom.grid} instance.
 #' @return The number of nodes in \code{grid}.
-getFVCOMNNodes <- function(grid)
+#'
+#' @name get.nnodes
+#' @aliases get.nnodes,fvcom.grid-method
+#' @docType methods
+#' @rdname get.nnodes-methods
+setGeneric("get.nnodes", function(grid, ...) {})
+setMethod("get.nnodes", "fvcom.grid",
+function(grid)
     return(grid@nodes.n)
-setGeneric("get.nnodes", getFVCOMNNodes)
-setMethod("get.nnodes", "fvcom.grid", getFVCOMNNodes)
+)
 
 #' Get the values of the nodes in the grid.
 #'
 #' @param grid A \code{fvcom.grid} instance.
-#' @return A \code{data.frame} with \code{x}, \code{y}, and \code{h} elements
-#' that correspond to the x, y, and depth of each node.
-getFVCOMNodes <- function(grid)
-    return(data.frame(x=grid@nodes.x, y=grid@nodes.y, h=grid@nodes.h))
-setGeneric("get.nodes", getFVCOMNodes)
-setMethod("get.nodes", "fvcom.grid", getFVCOMNodes)
+#' @return A \code{data.frame} with \code{x}, \code{y}, \code{h}, \code{lon},
+#' and \code{lat} elements that correspond to the x, y, depth, longitude, and
+#' latitude of each node.
+#'
+#' @name get.nodes
+#' @aliases get.nodes,fvcom.grid-method
+#' @docType methods
+#' @rdname get.nodes-methods
+setGeneric("get.nodes", function(grid, ...) {})
+setMethod("get.nodes", "fvcom.grid",
+function(grid)
+    return(data.frame(x=grid@nodes.x, y=grid@nodes.y, h=grid@nodes.h,
+                      lon=grid@nodes.lon, lat=grid@nodes.lat))
+)
 
 #' Get the value of the projection string.
 #'
 #' @param grid A \code{fvcom.grid} instance.
 #' @return The value of the projection string specified when the grid was
 #'         created.
-getFVCOMProj <- function(grid)
+#'
+#' @name get.proj
+#' @aliases get.proj,fvcom.grid-method
+#' @docType methods
+#' @rdname get.proj-methods
+setGeneric("get.proj", function(grid, ...) {})
+setMethod("get.proj", "fvcom.grid",
+function(grid)
     return(grid@proj)
-setGeneric("get.proj", getFVCOMProj)
-setMethod("get.proj", "fvcom.grid", getFVCOMProj)
+)
 
 #' Convert a single scalar or node based quantity to element based. 
 #' 
@@ -190,10 +253,18 @@ setMethod("get.proj", "fvcom.grid", getFVCOMProj)
 #' as the average of the value at the adjoining nodes. If the length of
 #' \code{x} is the number of elements in the grid, it is returned as is. Any
 #' other values throw an error.
-#' \param grid An fvcom.grid instance.
-#' \param x A vector of length 1 or \code{length get.nnodes(grid)}
-#' \return A vector of length \code{get.nelems(grid)}
-interpFVCOMGrid <- function(grid, x) {
+#' 
+#' @param grid An fvcom.grid instance.
+#' @param x A vector of length 1 or \code{length get.nnodes(grid)}
+#' @return A vector of length \code{get.nelems(grid)}
+#'
+#' @name interp
+#' @aliases interp,fvcom.grid-method
+#' @docType methods
+#' @rdname interp-methods
+setGeneric("interp", function(grid, ...) {})
+setMethod("interp", "fvcom.grid",
+function(grid, x) {
     if(length(x) == 1) {
         ## Repeat the scalar value nelems times.
         x.ret <- rep(x, get.nelems(grid))
@@ -211,8 +282,7 @@ interpFVCOMGrid <- function(grid, x) {
     }
     return(x.ret)
 }
-setGeneric("interp", interpFVCOMGrid)
-setMethod("interp", "fvcom.grid", interpFVCOMGrid)
+)
 
 #' Plot a \code{fvcom.grid} instance as a heatmap.
 #'
@@ -237,20 +307,25 @@ setMethod("interp", "fvcom.grid", interpFVCOMGrid)
 #'               add=F, otherwise bg.col is ignored.
 #'
 #' @examples {
-#'   # Load a demonstration grid
-#'   data(ocean.demo.grid)
 #'   op = par(ask=TRUE)
 #'   # Plot the grid in a single color
-#'   image(grid, col='white')
+#'   image(ocean.demo.grid, col='white')
 #'   # Plot the grid in bathy colors
-#'   image(grid)
+#'   image(ocean.demo.grid)
 #'   par(op)
 #' }
-imageFVCOMGrid <- function(x, z=get.depth(grid), units='ll',
-                          col=bathy.colors(100), add=FALSE,
-                          xlim=NA, ylim=NA, zlim=NA, legend=FALSE,
-                          border.col=NA, bg.col='gray', border.lwd=1) {
+#'
+#' @name image
+#' @aliases image,fvcom.grid-method
+#' @docType methods
+#' @rdname image-methods
+setMethod("image", "fvcom.grid",
+function(x, z=get.depth(x), units='ll',
+         col=bathy.colors(100), add=FALSE,
+         xlim=NA, ylim=NA, zlim=NA,
+         border.col=NA, bg.col='gray', border.lwd=1) {
     ## TODO Set aspect ratio automatically
+    grid = x
     ## Check the parameters for validity.
     ## Convert the passed in values to an element based quantity.
     z <- interp(grid, z)
@@ -318,33 +393,38 @@ imageFVCOMGrid <- function(x, z=get.depth(grid), units='ll',
     #           pch=15,
     #           cex=2)
 }
-setMethod("image", "fvcom.grid", imageFVCOMGrid)
+)
 
 #' Checks if the points (xy$x, xy$y) are in the \code{fvcom.grid} \code{grid}.
 #'
 #' @param grid A \code{fvcom.grid} instance.
 #' @param xy A \code{data.frame} with components \code{x} and \code{y} with
 #'           the x and y locations of the points.
+#' @param units Either 'll' for latitude and longitude or 'm' for meters.
 #' @return A vector of logical values of length \code{nrow(xy)}. The ith
 #'         element is \code{TRUE} if (\code{xy$x[i]}, \code{xy$y[i]}) is in
 #'         \code{grid} and \code{FALSE} otherwise.
 #'
 #' @examples {
-#' # Load the demo grid
-#' data(ocean.demo.grid)
 #' # Create a regular grid of test points
-#' lattice.grid = expand.grid(seq(min(grid@nodes.x), max(grid@nodes.x),
-#'                            len=10), y=seq(min(grid@nodes.y),
-#'                            max(grid@nodes.y), len=10))
+#' nodes = get.nodes(ocean.demo.grid)
+#' lattice.grid = expand.grid(x=seq(min(nodes$x), max(nodes$x), len=50),
+#'                            y=seq(min(nodes$y), max(nodes$y), len=50))
 #' # Check which points are in the grid
 #' in.grid = is.in.grid(ocean.demo.grid, lattice.grid, units="m")
 #' # Plot the points that are in the grid
 #' with(lattice.grid[in.grid,], plot(x, y))
 #' }
+#'
+#' @name is.in.grid
+#' @aliases is.in.grid,fvcom.grid-method
+#' @docType methods
+#' @rdname is.in.grid-methods
+setGeneric("is.in.grid", function(grid, xy, ...) {})
+setMethod("is.in.grid", "fvcom.grid",
 isInFVCOMGrid <- function(grid, xy, units='ll')
     return(!is.na(find.elem(grid, xy, units)))
-setGeneric("is.in.grid", isInFVCOMGrid)
-setMethod("is.in.grid", "fvcom.grid", isInFVCOMGrid)
+)
 
 #' Plot the density of x and y on grid.
 #' 
@@ -356,8 +436,8 @@ setMethod("is.in.grid", "fvcom.grid", isInFVCOMGrid)
 #' library.  
 #' 
 #' @param grid A \code{fvcom.grid} instance.
-#' @param x A vector of x location of points. NAs are not supported.
-#' @param y A vector of y locations of points. NAs are not supported.
+#' @param xy A \code{data.frame} with x and y location of points. NAs are not
+#' supported.
 #' @param npoints The number of points to scale the density plot by. This
 #'                defaults to the number of points passed in, but it may be
 #'                useful to set it to a different value if only a subset of
@@ -367,7 +447,8 @@ setMethod("is.in.grid", "fvcom.grid", isInFVCOMGrid)
 #'            is given. Square boxes will be plotted with each side of length
 #'            \code{res}.
 #' @param sigma The standard deviation of the Gaussian smoothing filter to be
-#'              applied. If no filter is required, set sigma=0.
+#'              applied. If no filter is required, set sigma=0. The units
+#'              should be the same as for \code{res}.
 #' @param log Should the density be log10 transformed before plotting?
 #' @param bg.col The background color.
 #' @param col A list of colors, such as that returned by heat.colors.
@@ -379,13 +460,14 @@ setMethod("is.in.grid", "fvcom.grid", isInFVCOMGrid)
 #' @param zlim z-limits for the plot.
 #'
 #' @examples {
-#' # Load the demo grid
-#' data(ocean.demo.grid)
 #' # Generate artificial data from a Gaussian distribution
-#' x = rnorm(10000, mean(ocean.demo.grid@nodes.x), 1000)
-#' y = rnorm(10000, mean(ocean.demo.grid@nodes.y), 1000)
+#' nodes = get.nodes(ocean.demo.grid)
+#' set.seed(1)
+#' x = rnorm(50000, mean(nodes$x), sd(nodes$x))
+#' y = rnorm(50000, mean(nodes$y), sd(nodes$y))
 #' # Plot the density of the mixture
-#' grd = pdd(ocean.demo.grid, x, y, res=100)
+#' res = (max(nodes$x) - min(nodes$x)) / 50
+#' grd = pdd(ocean.demo.grid, data.frame(x=x, y=y), res=res, sigma=5)
 #' }
 #'
 #' @references {
@@ -394,20 +476,33 @@ setMethod("is.in.grid", "fvcom.grid", isInFVCOMGrid)
 #' particle tracking parameters \emph{J. Marine Systems} 119--120:
 #' 19--29.
 #' }
-pddFVCOMGrid <- function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
-                         log=F, bg.col='gray', col=heat.colors(100), add=F,
-                         xlim=c(min(xy$x, na.rm=TRUE), max(xy$x, na.rm=TRUE)),
-                         ylim=c(min(xy$y, na.rm=TRUE), max(xy$y, na.rm=TRUE)),
-                         lim.units = 'm',
-                         zlim=NA) {
+#'
+#' @name pdd
+#' @aliases pdd,fvcom.grid-method
+#' @docType methods
+#' @rdname pdd-methods
+setGeneric("pdd", function(grid, xy, ...) {})
+setMethod("pdd", "fvcom.grid",
+function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
+         log=F, bg.col='gray', col=heat.colors(100), add=F,
+         xlim=c(min(get.nodes(grid)$x), max(get.nodes(grid)$x)),
+         ylim=c(min(get.nodes(grid)$y), max(get.nodes(grid)$y)),
+         lim.units = 'm',
+         zlim=NA) {
     ## TODO Use a matrix with rownames and colnames attrs
     ## Create a lattice grid for calculating the density.
+    if(lim.units == 'll') {
+        lim.proj = project(data.frame(x=xlim, y=ylim), proj=get.proj(grid))
+        xlim = lim.proj$x
+        ylim = lim.proj$y
+        rm(lim.proj)
+    }
     grd <- list(x=seq(xlim[1], xlim[2], by=res),
                 y=seq(ylim[1], ylim[2], by=res))
     grd$data <- matrix(0, nrow=length(grd$x) - 1, ncol=length(grd$y) - 1)
     ## Bin the data into the grid
     bin.data <- function(x, y, grid) {
-        out <- matrix(.C('R_bin_data',
+        out <- matrix(.C('R_bin_data', PACKAGE='ocean',
                          as.double(x), as.double(y), as.integer(length(x)),
                          as.double(grid$x), as.double(grid$y),
                          as.integer(nrow(grid$data)),
@@ -424,14 +519,12 @@ pddFVCOMGrid <- function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
     ## Apply a 2D Gaussian filter with std dev = sigma
     ## TODO Add xy.units as an option
     if(sigma > 0)
-        grd$data <- filter2d(grd$data, sigma)
+        grd$data <- filter2d(grd$data, sigma / res)
     ## Log transform the data if necessary
     if(log) {
         grd$data[grd$data == 0] <- NA ## Because log10(0) = -Inf
         grd$data <- matrix(log10(grd$data), nrow(grd$data))
     }
-    if(is.na(zlim[1]))
-        zlim <- c(min(grd$data, na.rm=TRUE), max(grd$data, na.rm=TRUE))
     ## Project the grid x,y into lat/lon
     x.proj <- c(grd$x, rep(grd$x[1], length(grd$y)))
     y.proj <- c(rep(grd$y[1], length(grd$x)), grd$y)
@@ -440,12 +533,10 @@ pddFVCOMGrid <- function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
     grd$x <- p$x[seq(length(grd$x))]
     grd$y <- p$y[length(p$y) - rev(seq(length(grd$y))) + 1]
     ## Project xlim and ylim if necessary
-    if(lim.units == 'm') {
-        lim.proj <- project(data.frame(x=xlim, y=ylim),
-                            proj=get.proj(grid), inverse=TRUE)
-        xlim <- lim.proj$x
-        ylim <- lim.proj$y
-    }
+    lim.proj <- project(data.frame(x=xlim, y=ylim),
+                        proj=get.proj(grid), inverse=TRUE)
+    xlim <- lim.proj$x
+    ylim <- lim.proj$y
     ## Set up a land mask
     ## Calculate the center of each grid cell. A cell is considered to be part
     ## of the grid if its center lies on the grid.
@@ -462,14 +553,18 @@ pddFVCOMGrid <- function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
     grd$data[!grd$mask] <- NA
     rm(mask)
     
+    ## Calculate the plotting limits
+    if(is.na(zlim[1]))
+        zlim <- c(min(grd$data, na.rm=TRUE), max(grd$data, na.rm=TRUE))
+    xlim = c(max(min(grd$x), xlim[1]), min(max(grd$x), xlim[2]))
+    ylim = c(max(min(grd$y), ylim[1]), min(max(grd$y), ylim[2]))
     ## Do the actual plotting
     image(matrix(1, 1, 1), xlim=xlim, ylim=ylim,
           col=bg.col, xlab='Longitude', ylab='Latitude')
     image(grd$data, x=grd$x, y=grd$y, col=col, add=TRUE, zlim=zlim)
     return(grd)
 }
-setGeneric("pdd", pddFVCOMGrid)
-setMethod("pdd", "fvcom.grid", pddFVCOMGrid)
+)
 
 #' Plot an instance of the \code{fvcom.grid} class and overlay the 
 #' trajectories given by \code{xy}.
@@ -483,21 +578,24 @@ setMethod("pdd", "fvcom.grid", pddFVCOMGrid)
 #'                    latitude and longitude.
 #' @param xy.units The units of \code{xy}. Either 'm' for meters or 'll' for
 #'                 latitude and longitude.
-#' @param col A vector of colors for each trajectory. If this vector is
-#'            shorter than \code{nrow(xy)}, it is recycled to the appropriate
-#'            length. If it is longer than \code{nrow(xy)} only the first
-#'            \code{nrow(xy)} components are used.
-#' @param lwd The line width for the trajectories.
+#' @param ... Additional arguments to be passed to \code{matlines}.
 #'
 #' @examples {
-#' # Load the demo grid
-#' data(ocean.demo.grid)
 #' # Create a set of random trajectories.
-#' x = apply(matrix(rnorm(10000, mean(grid@nodes.lon)), 100), 2, cumsum)
-#' y = apply(matrix(rnorm(10000, mean(grid@nodes.lat)), 100), 2, cumsum)
-#' plot(ocean.demo.grid, list(x=x, y=y))
-plotFVCOMGrid <- function(x, xy, plot.units='ll', xy.units='ll', col='black',
-                          lwd=1, lty=1) {
+#' nodes = get.nodes(ocean.demo.grid)
+#' set.seed(1)
+#' x = apply(matrix(rnorm(1000, 0, 0.01), 250), 2, cumsum) - 69.5
+#' y = apply(matrix(rnorm(1000, 0, 0.01), 250), 2, cumsum) + 42.5
+#' lines(ocean.demo.grid, list(x=x, y=y), lty=1)
+#' }
+#'
+#' @name lines
+#' @aliases lines,fvcom.grid-method
+#' @docType methods
+#' @rdname lines-methods
+#setGeneric("lines", function(x, xy, ...) {})
+setMethod("lines", "fvcom.grid",
+function(x, xy, plot.units='ll', xy.units='ll', ...) {
     ## Project xy if necessary
     if((xy.units == 'm') & (plot.units == 'll')) {
         xy.proj = project(data.frame(x=as.vector(xy$x), y=as.vector(xy$y)),
@@ -512,11 +610,14 @@ plotFVCOMGrid <- function(x, xy, plot.units='ll', xy.units='ll', col='black',
     }
     ## Plot the background, then plot the trajectories
     image(x, col='white', units=plot.units)
-    matlines(xy$x, xy$y, col=col, lwd=lwd, lty=lty)
+    matlines(xy$x, xy$y, ...)
 }
-setMethod("plot", "fvcom.grid", plotFVCOMGrid)
+)
 
 #' Check if a \code{fvcom.grid} instance is valid.
+#'
+#' @param object A \code{fvcom.grid} instance to check for validity.
+#' @return \code{TRUE} if object is well formed, otherwise \code{FALSE.}
 validFVCOMGrid <- function(object) {
     if((length(object@nodes.x) != object@nodes.n) ||
        (length(object@nodes.y) != object@nodes.n) ||
@@ -539,7 +640,7 @@ validFVCOMGrid <- function(object) {
     else return(TRUE)
 }
 setValidity("fvcom.grid", validFVCOMGrid)
-
+            
 #' Create a new FVCOM grid instance from a FVCOM NetCDF output file.
 #' 
 #' @param filename The name of an output NetCDF file from FVCOM.
