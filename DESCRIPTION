@@ -18,7 +18,6 @@ Description: This package contains a set of functions for manipulating and
     in NetCDF files. This package may be useful to spatial marine ecologists
     and biological or physical oceanographers.
 License: GPL-3
-Data: yes
 LazyLoad: yes
 LazyData: yes
 URL: https://github.com/btjones16/ocean
