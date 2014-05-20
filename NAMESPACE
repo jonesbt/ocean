@@ -4,7 +4,7 @@ useDynLib(ocean)
 import(methods, ncdf4, proj4)
 
 ## Export general functions
-export(bathy.colors, jet.colors)
+export(bathy.colors, jet.colors, fvcom.grid)
 
 ## Export the fvcom.grid class and its methods.
 importFrom("graphics", image)

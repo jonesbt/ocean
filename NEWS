@@ -1,5 +1,9 @@
-ocean 0.2-3
+ocean 0.2-4
 ===========
-
 * Introduction of fvcom.grid S4 class
 * Fixed bug in pdd plots
+
+ocean 0.2-6
+===========
+* Added fvcom.grid method to load from FVCOM output.
+* TODO Switched to RNetCDF to support Windows
