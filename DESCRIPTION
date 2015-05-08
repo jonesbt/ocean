@@ -26,6 +26,5 @@ Collate:
     'filter2d.R'
     'color_bar.R'
     'color_ramps.R'
-    'bathy.R'
     'fvcom_grid.R'
 Suggests: testthat
