@@ -14,6 +14,8 @@
 #'     \item{nodes.lat}{Latitude of the nodes.}
 #'     \item{nodes.lon}{Longitude of the nodes.}
 #'     \item{elems.n}{Number of elements in the grid}
+#'     \item{elems.x}{The x-coordiates of the center of each element (m).}
+#'     \item{elems.y}{The y-coordiates of the center of each element (m).}
 #'     \item{elems.v1}{1st set of node indices}
 #'     \item{elems.v2}{2nd set of node indices}
 #'     \item{elems.v3}{3rd set of node indices}
@@ -35,10 +37,20 @@ setClass("fvcom.grid",
              nodes.lat="numeric",
              nodes.lon="numeric",
              elems.n="integer",
+             elems.x = "numeric",
+             elems.y = "numeric",
+             elems.h = "numeric",
              elems.v1="integer",
              elems.v2="integer",
              elems.v3="integer",
              elems.size="numeric",
+             siglay.n="integer",
+             siglay="matrix",
+             siglev.n="integer",
+             siglev="matrix",
+             a1u="matrix",
+             a2u="matrix",
+             nbe="matrix",
              proj="character"
              )
          )
@@ -67,27 +79,44 @@ NULL
 #'   \code{proj4::project} and converts between the x,y and lat,lon coordinate
 #'   systems for this grid.
 #' @return An instance of the \code{fvcom.grid} class.
-loadFVCOMGrid27 <- function(filename, proj) {
+loadFVCOMGrid27 <- function(filename, proj='') {
     ncid <- nc_open(filename)
     x <- as.vector(ncvar_get(ncid, 'x'))
     y <- as.vector(ncvar_get(ncid, 'y'))
     h <- as.vector(ncvar_get(ncid, 'h'))
-    if(proj != '') {
-        ll <- project(data.frame(x, y), proj, inverse=TRUE)
-    } else {
-        ll <- data.frame(x=NULL, y=NULL)
-    }
+    # First try to load the lat/lon from file, then compute them if that fails.
+    tryCatch({
+        ll = data.frame(
+          x = as.vector(ncvar_get(ncid, 'lon')),
+          y = as.vector(ncvar_get(ncid, 'lat'))
+        )
+    }, error=function(e) {
+        if(proj != '') {
+            ll <- project(data.frame(x, y), proj, inverse=TRUE)
+        } else {
+            ll <- data.frame(x=NULL, y=NULL)
+        }
+    })
     ev <- ncvar_get(ncid, 'nv') ## Element vertices
     elem.size <- sapply(seq(nrow(ev)), function(i)
         det(matrix(c(x[ev[i, 1]], x[ev[i, 2]], x[ev[i, 3]],
                      y[ev[i, 1]], y[ev[i, 2]], y[ev[i, 3]],
                      1, 1, 1),
                    3, 3, byrow=T))) / 2
+    n_siglay = ncid$dim$siglay$len
     nc_close(ncid)
+    elems_x = apply(matrix(c(x[ev[, 1]], x[ev[, 2]], x[ev[, 3]]), nrow(ev), 3),
+      1, mean)
+    elems_y = apply(matrix(c(y[ev[, 1]], y[ev[, 2]], y[ev[, 3]]), nrow(ev), 3),
+      1, mean)
+    elems_h = apply(matrix(c(h[ev[, 1]], h[ev[, 2]], h[ev[, 3]]), nrow(ev), 3),
+      1, mean)
     return(new("fvcom.grid",
                nodes.n=length(x), nodes.x=x, nodes.y=y, nodes.h=h,
                nodes.lat=ll$y, nodes.lon=ll$x, proj=proj,
-               elems.n=nrow(ev),
+               siglay.n=n_siglay,
+               elems.n=nrow(ev), elems.x=elems_x, elems.y=elems_y,
+               elems.h=elems_h,
                elems.v1=ev[,1], elems.v2=ev[,2], elems.v3=ev[,3]))
 }
 
@@ -323,7 +352,7 @@ setMethod("image", "fvcom.grid",
 function(x, z=get.depth(x), units='ll',
          col=bathy.colors(100), add=FALSE,
          xlim=NA, ylim=NA, zlim=NA,
-         border.col=NA, bg.col='gray', border.lwd=1) {
+         border.col=NA, bg.col='gray', border.lwd=1, ...) {
     ## TODO Set aspect ratio automatically
     grid = x
     ## Check the parameters for validity.
@@ -381,7 +410,7 @@ function(x, z=get.depth(x), units='ll',
         image(matrix(1,1,1), col=bg.col,
               xlab = "Longitude",
               ylab = "Latitude",
-              xlim=xlim, ylim=ylim)
+              xlim=xlim, ylim=ylim, ...)
     polygon(cut.poly(x), cut.poly(y), col=col, border=border.col, lwd=border.lwd)
     #if(legend) (TODO Add legend)
     #    legend(min(x), max(y),
@@ -426,6 +455,13 @@ isInFVCOMGrid <- function(grid, xy, units='ll')
     return(!is.na(find.elem(grid, xy, units)))
 )
 
+setGeneric("is.in.water", function(grid, xyz, ...) {})
+setMethod("is.in.water", "fvcom.grid",
+isInWater <- function(grid, xyz, units='ll') {
+    elem = find.elem(grid, xyz, units)
+    return(!is.na(elem) & xyz$z < grid@elems.h[elem])
+})
+
 #' Plot the density of x and y on grid.
 #' 
 #' Plots the distribution of x and y on grid. This function follows the
@@ -441,7 +477,7 @@ isInFVCOMGrid <- function(grid, xy, units='ll')
 #' @param npoints The number of points to scale the density plot by. This
 #'                defaults to the number of points passed in, but it may be
 #'                useful to set it to a different value if only a subset of
-#'                the points are being plotted (e.g. some points are outside
+#'                The points are being plotted (e.g. some points are outside
 #'                of the domain).
 #' @param res The resolution of the plot in the same dimensions as \code{xy}
 #'            is given. Square boxes will be plotted with each side of length
@@ -565,6 +601,38 @@ function(grid, xy, npoints=nrow(xy), res=1000, sigma=0,
     return(grd)
 }
 )
+
+#' Plots the element as a polygon.
+#'
+#' @param grid A \code{fvcom.grid} instance.
+#' @param elem The index of the element to plot.
+#' @param units Either 'll' for latitude and longitude or 'm' for meters.
+#' @param ... Extra arguments to be passed through to graphics::polygon.
+#' 
+#' @name plot.elem
+#' @aliases plot.elem,fvcom.grid-method
+#' @docType methods
+#' @rdname plot.elem-methods
+setGeneric("plot.elem", function(grid, elem, units='ll', ...) {})
+setMethod("plot.elem", "fvcom.grid",
+plotFVCOMGridElem <- function(grid, elem, units='ll', ...) {
+    if(units == 'll') {
+        x = grid@nodes.lon
+        y = grid@nodes.lat
+    } else if(units == 'm') {
+        x = grid@nodes.x
+        y = grid@nodes.y
+    } else {
+        stop('Invalid units specification. Use either "ll" or "m".')
+    }
+    plot_x = c(x[grid@elems.v1[elem]],
+      x[grid@elems.v2[elem]],
+      x[grid@elems.v3[elem]])
+    plot_y = c(y[grid@elems.v1[elem]],
+      y[grid@elems.v2[elem]],
+      y[grid@elems.v3[elem]])
+    polygon(plot_x, plot_y, ...)
+})
 
 #' Plot an instance of the \code{fvcom.grid} class and overlay the 
 #' trajectories given by \code{xy}.

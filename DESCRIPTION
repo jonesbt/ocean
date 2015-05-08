@@ -1,12 +1,12 @@
 Package: ocean
-Version: 0.2-4
-Date: 2014-04-29
+Version: 2015-05.06
+Date: 2015-05-08
 Title: Biophysical Oceanography Tools
 Authors@R: c(person("Benjamin", "Jones", role = c("aut", "cre"),
     email = "btjones16@gmail.com"))
 Author: Benjamin Jones [aut, cre]
 Maintainer: Benjamin Jones <btjones16@gmail.com>
-Depends:
+Depends: 
     R (>= 3.0.2),
     graphics,
     methods,
@@ -22,8 +22,10 @@ LazyLoad: yes
 LazyData: yes
 URL: https://github.com/btjones16/ocean
 BugReports: https://github.com/btjones16/ocean/issues
-Collate:
+Collate: 
     'filter2d.R'
+    'color_bar.R'
     'color_ramps.R'
+    'bathy.R'
     'fvcom_grid.R'
-Packaged: 2014-04-27 22:26:52 UTC; btjones
+Suggests: testthat

@@ -3,3 +3,10 @@ ocean 0.2-3
 
 * Introduction of fvcom.grid S4 class
 * Fixed bug in pdd plots
+
+ocean 0.3-5
+===========
+* Added support for ... to image.grid.
+* Added function to plot color bar.
+* Added support for alpha specification to jet.colors.
+* Added a number of test cases to various methods and functions.

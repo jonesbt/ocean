@@ -29,12 +29,20 @@ test_that('bathy.colors assigns the correct alpha value', {
         expect_equal(substr(cols[i], 8, 9), "FF")
 })
 
+test_that('bathy.colors begins with grey and ends with blue', {
+    cols = col2rgb(bathy.colors(10))
+    rownames(cols) = NULL
+    colnames(cols) = NULL
+    expect_equal(cols[1,1], cols[2,1])
+    expect_equal(cols[2,1], cols[3,1])
+    expect_true((cols[3,10] > cols[1,10]) & (cols[3,10] > cols[2,10]))
+})
+
 test_that('jet.colors returns the correct number of colors', {
     expect_equal(length(jet.colors(0)), 0)
     expect_equal(length(jet.colors(1)), 1)
     expect_equal(length(jet.colors(128)), 128)
-    }
-)
+})
 
 test_that('jet.colors does not accept a negative number of colors.', {
     expect_error(jet.colors(-1))
@@ -60,3 +68,10 @@ test_that('jet.colors assigns the correct alpha value', {
         expect_equal(substr(cols[i], 8, 9), "FF")
 })
 
+test_that('jet.colors begins with blue and ends with red', {
+    cols = col2rgb(jet.colors(10))
+    expect_true((cols[3,1] > cols[1,1]) & (cols[3,1] > cols[2,1]))
+    expect_true((cols[1,10] > cols[2,10]) & (cols[1,10] > cols[3,10]))
+})
+
+## TODO INSERT UNIT TESTS FOR SHALLOW.BATHY.COLORS ##
