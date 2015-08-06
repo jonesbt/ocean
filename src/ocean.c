@@ -64,3 +64,19 @@ void R_find_element(double* x_pts, double* y_pts, int* n_pts,
 				x, y, n_grid_pts[0],
 				tri1, tri2, tri3);
 }
+
+SEXP R_find_element(SEXP x_pts, SEXP y_pts, 
+		    SEXP x, SEXP y, 
+		    SEXP tri1, SEXP tri2, SEXP tri3) {
+  /* Get the number of points and mesh size. */
+  /** \todo */
+  /* Allocate memory for the elements. */
+  SEXP elements = PROTECT(allocVector(INTSXP, 1));
+  /* Find the element containing each point. */
+  /** \todo */
+  //for(int i = 0; i < n_pts; ++i)
+  //  elements[i] = INT(find_element());
+  /* Cleanup and return. */
+  UNPROTECT(1);
+  return elements;
+}
