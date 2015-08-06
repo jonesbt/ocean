@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
 library(testthat)
-library(ocean.dev)
+library(ocean)
 
-test_check("ocean.dev")
+test_check("ocean")
