@@ -1,6 +1,6 @@
 Package: ocean
-Version: 2015-05.06
-Date: 2015-05-08
+Version: 2015-05.08
+Date: 2015-08-06
 Title: Biophysical Oceanography Tools
 Authors@R: c(person("Benjamin", "Jones", role = c("aut", "cre"),
     email = "btjones16@gmail.com"))
