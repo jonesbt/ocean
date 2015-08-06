@@ -10,3 +10,7 @@ ocean 0.3-5
 * Added function to plot color bar.
 * Added support for alpha specification to jet.colors.
 * Added a number of test cases to various methods and functions.
+
+ocean 0.3.8
+===========
+* Add Gulf of Maine V3 mesh (from http://fvcom.smast.umassd.edu/)
