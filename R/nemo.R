@@ -15,7 +15,7 @@ library(ncdf4)
 #' 
 write.nemo = function(data, filename) {
     # Create the dimensions and variables.
-    dim_particle = ncdim_def('particle', ''. as.integer(seq(nrow(data))),
+    dim_particle = ncdim_def('particle', '', as.integer(seq(nrow(data))),
                              create_dimver=FALSE)
     var_x = ncvar_def('x', 'm', list(dim_particle))
     var_y = ncvar_def('y', 'm', list(dim_particle))
