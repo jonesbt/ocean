@@ -27,4 +27,5 @@ Collate:
     'color_bar.R'
     'color_ramps.R'
     'fvcom_grid.R'
+    'nemo.R'
 Suggests: testthat
