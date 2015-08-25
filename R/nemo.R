@@ -29,3 +29,16 @@ write.nemo = function(data, filename) {
     ncvar_put(ncid, 'release_time', data$time)
     nc_close(ncid)
 }
+
+#' Reads a Nemo initialization file into a data.frame.
+read.nemo = function(filename) {
+    ncid = nc_open(filename)
+    dat = data.frame(
+        x = ncvar_get(ncid, 'x'),
+        y = ncvar_get(ncid, 'y'),
+        z = ncvar_get(ncid, 'z'),
+        time = ncvar_get(ncid, 'release_time')
+    )
+    nc_close(ncid)
+    return(dat)
+}
